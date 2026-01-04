@@ -185,6 +185,7 @@ const App = () => {
             <div className='content'>
                <label>Select input</label>
                <SelectComponent
+                  isSearchable={false}
                   onChange={setInput}
                   options={options}
                   type='autocomplete'

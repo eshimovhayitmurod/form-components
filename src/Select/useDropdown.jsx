@@ -10,25 +10,15 @@ import {
    useListNavigation,
    useRole,
 } from '@floating-ui/react';
-import { useEffect, useState } from 'react';
-const useDropdown = ({
-   isDisabled = false,
-   isMultiple,
-   listRef,
-   options = [],
-   page = 1,
-   pointer = false,
-   setFilter,
-   value,
-}) => {
-   const [activeIndex, setActiveIndex] = useState(null);
+import { useState } from 'react';
+const useDropdown = ({ isDisabled = false, listRef, setFilter }) => {
+   const [activeIndex, setActiveIndex] = useState(0);
    const [open, setOpen] = useState(false);
-   const [selectedIndex, setSelectedIndex] = useState(0);
    const { refs, floatingStyles, context } = useFloating({
       open,
       whileElementsMounted: autoUpdate,
       onOpenChange: open => {
-         setActiveIndex(null);
+         setActiveIndex(0);
          setOpen(open);
          setFilter({ search: '', page: 1 });
       },
@@ -56,30 +46,12 @@ const useDropdown = ({
       disabledIndices: [],
       listRef,
       loop: false,
-      selectedIndex: -1,
-      virtual: false,
-      onNavigate: newIndex => {
-         setActiveIndex(oldIndex => {
-            const newOrder = pointer
-               ? newIndex
-               : activeIndex === null && oldIndex === 0 && !pointer
-               ? 0
-               : newIndex;
-            return newOrder;
-         });
-      },
+      onNavigate: setActiveIndex,
+      selectedIndex: null,
+      virtual: true,
    });
    const { getReferenceProps, getFloatingProps, getItemProps } =
       useInteractions([click, role, dismiss, listNavigation]);
-   useEffect(() => {
-      if (open && page === 1) {
-         const singleIndex = options.findIndex(
-            option => option?.value === value?.value
-         );
-         const selectedIndex = isMultiple ? 0 : singleIndex;
-         setSelectedIndex(selectedIndex);
-      }
-   }, [open, options, isMultiple, value, page]);
    return {
       activeIndex,
       context,
@@ -87,13 +59,10 @@ const useDropdown = ({
       getFloatingProps,
       getItemProps,
       getReferenceProps,
-      listRef,
       open,
       refs,
-      selectedIndex,
       setActiveIndex,
       setOpen,
-      setSelectedIndex,
    };
 };
 export default useDropdown;

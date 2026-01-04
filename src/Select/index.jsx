@@ -40,8 +40,8 @@ const Select = ({
    const [filter, setFilter] = useState(defaultFilter);
    const [hasMore, setHasMore] = useState(false);
    const [loading, setLoading] = useState(false);
-   const [pointer, setPointer] = useState(false);
    const search = filter?.search;
+   const page = filter?.page;
    const memoizedOptions = useMemo(() => {
       const newOptions = Array.isArray(options) ? options : [];
       const filteredOptions = newOptions.filter(option =>
@@ -63,20 +63,22 @@ const Select = ({
       getReferenceProps,
       open,
       refs,
-      setOpen,
       setActiveIndex,
+      setOpen,
    } = useDropdown({
       isDisabled,
-      isMultiple,
       listRef,
-      options: memoizedOptions,
-      pointer,
       setFilter,
-      value,
    });
    useEffect(() => {
-      listRef.current = new Array(memoizedOptions?.length).fill(null);
-   }, [memoizedOptions?.length]);
+      if (page === 1) {
+         listRef.current = [];
+         listRef.current.null = inputRef.current;
+         for (let i = 0; i < memoizedOptions?.length; i++) {
+            listRef.current[i] = null;
+         }
+      }
+   }, [memoizedOptions?.length, listRef, inputRef, page]);
    return (
       <Fragment>
          <Container
@@ -115,7 +117,6 @@ const Select = ({
             onChange={onChange}
             open={open}
             options={memoizedOptions}
-            pointer={pointer}
             refs={refs}
             searchPlaceholder={searchPlaceholder}
             service={service}
@@ -125,7 +126,6 @@ const Select = ({
             setHasMore={setHasMore}
             setLoading={setLoading}
             setOpen={setOpen}
-            setPointer={setPointer}
             type={type}
             value={value}
          />

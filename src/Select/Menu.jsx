@@ -87,15 +87,14 @@ const Menu = ({
    refs,
    searchPlaceholder = 'Search',
    service,
-   setActiveIndex,
    setApiOptions,
    setFilter,
    setHasMore,
    setLoading,
    setOpen,
-   setPointer,
    type = 'select', // select | autocomplete
    value,
+   setActiveIndex,
 }) => {
    const abortController = useRef(null);
    const hasData = useMemo(() => options?.length > 0, [options]);
@@ -175,7 +174,7 @@ const Menu = ({
       }
    }, [page, getData, loading, search, setFilter, hasMore]);
    const onSelect = useCallback(() => {
-      if (activeIndex > -1) {
+      if (activeIndex !== null) {
          setOpen(false);
          const valueList = Array.isArray(value) ? value : [];
          const foundValue = options.find(
@@ -235,17 +234,6 @@ const Menu = ({
                         if (e.key === 'Enter' && activeIndex !== null) {
                            onSelect();
                         }
-                        if (e.key === 'ArrowUp') {
-                           if (activeIndex === 0) {
-                              inputRef.current.focus();
-                              setActiveIndex(null);
-                           }
-                           if (activeIndex === null) {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setActiveIndex(null);
-                           }
-                        }
                      },
                   })}
                   height={maxHeight}
@@ -266,7 +254,7 @@ const Menu = ({
                                  e.preventDefault();
                                  setActiveIndex(0);
                               }
-                              if (e.key === 'Enter' && activeIndex != null) {
+                              if (e.key === 'Enter' && activeIndex !== null) {
                                  onSelect();
                                  setOpen(false);
                               }
@@ -286,7 +274,7 @@ const Menu = ({
                         ) : hasData ? (
                            <InfiniteScroll
                               className='menu-items'
-                              hasMore={hasMore}
+                              hasMore={hasMore && type === 'autocomplete'}
                               initialLoad={false}
                               loadMore={loadMore}
                               pageStart={1}
@@ -304,7 +292,6 @@ const Menu = ({
                                     listRef={listRef}
                                     onSelect={onSelect}
                                     option={option}
-                                    setPointer={setPointer}
                                     value={value}
                                  />
                               ))}
