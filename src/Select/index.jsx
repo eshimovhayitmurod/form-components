@@ -40,6 +40,7 @@ const Select = ({
    const [filter, setFilter] = useState(defaultFilter);
    const [hasMore, setHasMore] = useState(false);
    const [loading, setLoading] = useState(false);
+   const [pointer, setPointer] = useState(false);
    const search = filter?.search;
    const memoizedOptions = useMemo(() => {
       const newOptions = Array.isArray(options) ? options : [];
@@ -69,6 +70,7 @@ const Select = ({
       isMultiple,
       listRef,
       options: memoizedOptions,
+      pointer,
       setFilter,
       value,
    });
@@ -113,6 +115,7 @@ const Select = ({
             onChange={onChange}
             open={open}
             options={memoizedOptions}
+            pointer={pointer}
             refs={refs}
             searchPlaceholder={searchPlaceholder}
             service={service}
@@ -122,6 +125,7 @@ const Select = ({
             setHasMore={setHasMore}
             setLoading={setLoading}
             setOpen={setOpen}
+            setPointer={setPointer}
             type={type}
             value={value}
          />

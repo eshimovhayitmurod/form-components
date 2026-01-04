@@ -93,6 +93,7 @@ const Menu = ({
    setHasMore,
    setLoading,
    setOpen,
+   setPointer,
    type = 'select', // select | autocomplete
    value,
 }) => {
@@ -303,6 +304,7 @@ const Menu = ({
                                     listRef={listRef}
                                     onSelect={onSelect}
                                     option={option}
+                                    setPointer={setPointer}
                                     value={value}
                                  />
                               ))}

@@ -17,6 +17,7 @@ const useDropdown = ({
    listRef,
    options = [],
    page = 1,
+   pointer = false,
    setFilter,
    value,
 }) => {
@@ -59,8 +60,11 @@ const useDropdown = ({
       virtual: false,
       onNavigate: newIndex => {
          setActiveIndex(oldIndex => {
-            const newOrder =
-               activeIndex === null && oldIndex === 0 ? 0 : newIndex;
+            const newOrder = pointer
+               ? newIndex
+               : activeIndex === null && oldIndex === 0 && !pointer
+               ? 0
+               : newIndex;
             return newOrder;
          });
       },

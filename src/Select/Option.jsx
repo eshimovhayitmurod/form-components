@@ -34,6 +34,7 @@ const Option = memo(
       listRef,
       onSelect,
       option,
+      setPointer,
       value,
    }) => {
       const label = option?.label;
@@ -56,6 +57,12 @@ const Option = memo(
          <StyledOption
             {...getItemProps({
                onClick: onSelect,
+               onMouseEnter() {
+                  setPointer(true);
+               },
+               onMouseLeave() {
+                  setPointer(false);
+               },
             })}
             aria-selected={activeIndex === index}
             key={index}
