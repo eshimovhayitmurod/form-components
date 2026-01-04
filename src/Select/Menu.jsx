@@ -7,6 +7,7 @@ import { api } from './api';
 import { defaultFilter } from './constants';
 import Loading from './Loading';
 import LoadingMore from './LoadingMore';
+import MenuHeader from './MenuHeader';
 import NoOptions from './NoOptions';
 import Option from './Option';
 const StyledMenu = styled.div`
@@ -20,25 +21,6 @@ const StyledMenu = styled.div`
    padding: 0 0 6px 0;
    box-shadow: 0 1px 20px 0 rgba(13, 46, 105, 0.07),
       0 1px 20px 0 rgba(13, 46, 105, 0.07);
-   & .menu-header {
-      background-color: #ffffff;
-      height: 47px;
-      padding: 7px 6px 0 6px;
-      & input {
-         background-color: #ffffff;
-         border-radius: 7px;
-         border: 1.5px solid #e1e1e1;
-         font-size: 16px;
-         font-weight: 500;
-         height: 40px;
-         outline: none;
-         padding-left: 12px;
-         width: 100%;
-         &:focus {
-            border: 1.5px solid #3a79f3;
-         }
-      }
-   }
    & .menu-body {
       padding: 6px 0 0 0;
       & .menu-list {
@@ -87,6 +69,7 @@ const Menu = ({
    refs,
    searchPlaceholder = 'Search',
    service,
+   setActiveIndex,
    setApiOptions,
    setFilter,
    setHasMore,
@@ -94,7 +77,6 @@ const Menu = ({
    setOpen,
    type = 'select', // select | autocomplete
    value,
-   setActiveIndex,
 }) => {
    const abortController = useRef(null);
    const hasData = useMemo(() => options?.length > 0, [options]);
@@ -104,6 +86,10 @@ const Menu = ({
       const searchable = type === 'select' ? !!isSearchable : true;
       return searchable;
    }, [isSearchable, type]);
+   const height = useMemo(
+      () => (searchable ? 'calc(100% - 47px)' : '100%'),
+      [searchable]
+   );
    const maxHeight = useMemo(() => {
       const length = options?.length;
       const maxHeight =
@@ -116,6 +102,14 @@ const Menu = ({
             : length * 44 + 59;
       return maxHeight;
    }, [options, loading, page]);
+   const isLoading = useMemo(() => {
+      const isLoading = loading && page === 1;
+      return isLoading;
+   }, [loading, page]);
+   const HasMore = useMemo(
+      () => hasMore && type === 'autocomplete',
+      [hasMore, type]
+   );
    const getData = useCallback(
       async ({ search = '', page = 1 }) => {
          if (abortController?.current) {
@@ -192,7 +186,7 @@ const Menu = ({
          onChange(newValue);
          const filter = { search: '', page: 1 };
          setFilter(filter);
-         if (type === 'autocomplete') {
+         if (type === 'autocomplete' && search !== '') {
             getData(filter);
          }
       }
@@ -202,23 +196,12 @@ const Menu = ({
       isMultiple,
       onChange,
       options,
+      search,
       setFilter,
       setOpen,
       type,
       value,
    ]);
-   const onInputChange = useCallback(
-      e => {
-         const search = e.target.value;
-         const filter = { search, page: 1 };
-         setFilter(filter);
-         setActiveIndex(null);
-         if (type === 'autocomplete') {
-            debouncedSearch(filter);
-         }
-      },
-      [setFilter, type, debouncedSearch, setActiveIndex]
-   );
    useEffect(() => {
       if (type === 'autocomplete') {
          debouncedSearch(defaultFilter);
@@ -242,39 +225,27 @@ const Menu = ({
                   tabIndex={-1}
                >
                   {searchable && (
-                     <div className='menu-header'>
-                        <input
-                           onChange={onInputChange}
-                           placeholder={searchPlaceholder}
-                           ref={inputRef}
-                           type='text'
-                           value={search}
-                           onKeyDown={e => {
-                              if (e.key === 'ArrowDown') {
-                                 e.preventDefault();
-                                 setActiveIndex(0);
-                              }
-                              if (e.key === 'Enter' && activeIndex !== null) {
-                                 onSelect();
-                                 setOpen(false);
-                              }
-                           }}
-                        />
-                     </div>
+                     <MenuHeader
+                        activeIndex={activeIndex}
+                        debouncedSearch={debouncedSearch}
+                        inputRef={inputRef}
+                        onSelect={onSelect}
+                        search={search}
+                        searchPlaceholder={searchPlaceholder}
+                        setActiveIndex={setActiveIndex}
+                        setFilter={setFilter}
+                        setOpen={setOpen}
+                        type={type}
+                     />
                   )}
-                  <div
-                     className='menu-body'
-                     style={{
-                        height: searchable ? 'calc(100% - 47px)' : '100%',
-                     }}
-                  >
+                  <div className='menu-body' style={{ height }}>
                      <div className='menu-list'>
-                        {loading && filter?.page === 1 ? (
+                        {isLoading ? (
                            <Loading />
                         ) : hasData ? (
                            <InfiniteScroll
                               className='menu-items'
-                              hasMore={hasMore && type === 'autocomplete'}
+                              hasMore={HasMore}
                               initialLoad={false}
                               loadMore={loadMore}
                               pageStart={1}

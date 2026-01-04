@@ -54,6 +54,11 @@ const Container = ({
       const hasValue = isMultiple ? hasMultipleValue : hasSingleValue;
       return hasValue;
    }, [value, isMultiple]);
+   const padding = useMemo(() => {
+      const padding =
+         isMultiple && hasValue ? '4px 12px 4px 4px' : '4px 12px 4px 15px';
+      return padding;
+   }, [isMultiple, hasValue]);
    return (
       <StyledContainer>
          <div
@@ -64,13 +69,8 @@ const Container = ({
             onBlur={onBlur}
             onFocus={onFocus}
             ref={refs.setReference}
+            style={{ padding }}
             tabIndex={0}
-            style={{
-               padding:
-                  isMultiple && hasValue
-                     ? '4px 12px 4px 4px'
-                     : '4px 12px 4px 15px',
-            }}
          >
             {hasValue ? (
                <ValueContainer

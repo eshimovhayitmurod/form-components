@@ -62,6 +62,7 @@ const MultipleValue = memo(
          const valueLabel = isValid ? label : '';
          return valueLabel;
       }, [label]);
+      const clearable = useMemo(() => !isDisabled, [isDisabled]);
       const removeOption = useCallback(
          e => {
             e.preventDefault();
@@ -77,7 +78,7 @@ const MultipleValue = memo(
       return (
          <StyledMultiValue>
             <div className='label'>{valueLabel}</div>
-            {!isDisabled && (
+            {clearable && (
                <div className='remove' onClick={removeOption}>
                   <svg
                      fill='#949494'

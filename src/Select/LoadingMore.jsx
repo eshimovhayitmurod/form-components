@@ -3,7 +3,7 @@ import Spinner from './Spinner';
 const StyledLoadingMore = styled.div`
    align-items: center;
    display: flex;
-   height: 44px;
+   height: 36px;
    justify-content: center;
    width: 100%;
 `;

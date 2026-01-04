@@ -42,7 +42,11 @@ const Option = memo(
          const memoizedLabel = isValid ? label : '';
          return memoizedLabel;
       }, [label]);
-      const isFocused = useMemo(
+      const background = useMemo(
+         () => (activeIndex === index ? 'rgba(82, 85, 241, 0.1)' : 'none'),
+         [activeIndex, index]
+      );
+      const ariaSelected = useMemo(
          () => activeIndex === index,
          [activeIndex, index]
       );
@@ -52,24 +56,23 @@ const Option = memo(
          const isSelected = isMultiple ? some : value?.value === option?.value;
          return isSelected;
       }, [isMultiple, value, option]);
+      const width = useMemo(() => {
+         const width = isSelected ? 'calc(100% - 24px)' : '100%';
+         return width;
+      }, [isSelected]);
       return (
          <StyledOption
             {...getItemProps({
                onClick: onSelect,
             })}
-            aria-selected={activeIndex === index}
+            aria-selected={ariaSelected}
             key={index}
             ref={node => (listRef.current[index] = node)}
             role='option'
+            style={{ background }}
             tabIndex={-1}
-            style={{
-               background: isFocused ? 'rgba(82, 85, 241, 0.1)' : 'none',
-            }}
          >
-            <div
-               className='label'
-               style={{ width: isSelected ? 'calc(100% - 24px)' : '100%' }}
-            >
+            <div className='label' style={{ width }}>
                {memoizedLabel}
             </div>
             {isSelected && (

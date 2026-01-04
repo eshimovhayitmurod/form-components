@@ -32,16 +32,16 @@ const animation2 = keyframes`
    }
 `;
 const StyledSpinner = styled.div`
-   height: 23px;
-   width: 23px;
+   height: 28px;
+   width: 28px;
    & div {
       animation: ${animation1} 0.7s linear alternate infinite,
          ${animation2} 0.3s linear infinite;
       border-radius: 50%;
-      border: 2px solid #3a79f3;
+      border: 3px solid #3a79f3;
       box-sizing: border-box;
-      height: 23px;
-      width: 23px;
+      height: 28px;
+      width: 28px;
    }
 `;
 const Spinner = () => (
