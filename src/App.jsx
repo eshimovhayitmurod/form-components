@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import CreatableSelect from './components/CreatableSelect';
 import CreditCardInput from './components/CreditCardInput';
 // import Editor from './components/Editor';
+import SelectComponent from './Select';
 import AutoComplete from './components/AutoComplete';
 import Calendar from './components/Calendar/Calendar';
 import ColorInput from './components/ColorInput';
@@ -125,6 +126,41 @@ const App = () => {
    const [color, setColor] = useState('');
    const [phoneInput, onChangePhone] = useState('998933030207');
    const [phones, onChangePhones] = useState(['998933030207']);
+   const [input, setInput] = useState(null);
+   const options = [
+      {
+         label: 'Option 1',
+         value: 1,
+      },
+      {
+         label: 'Option 2',
+         value: 2,
+      },
+      {
+         label: 'Option 3',
+         value: 3,
+      },
+      {
+         label: 'Option 4',
+         value: 4,
+      },
+      {
+         label: 'Option 5',
+         value: 5,
+      },
+      {
+         label: 'Option 6',
+         value: 6,
+      },
+      {
+         label: 'Option 7',
+         value: 7,
+      },
+      {
+         label: 'Option 8',
+         value: 8,
+      },
+   ];
    return (
       <Fragment>
          <StyledHeader>
@@ -142,6 +178,25 @@ const App = () => {
          </StyledHeader>
          <StyledInputContent>
             <h2 className='sub-title'>Inputs</h2>
+            <div className='content'>
+               <label>Select</label>
+               <Select onChange={setSelect} value={select} options={options} />
+            </div>
+            <div className='content'>
+               <label>Select input</label>
+               <SelectComponent
+                  onChange={setInput}
+                  options={options}
+                  type='autocomplete'
+                  value={input}
+                  getUrl={({ search, page }) => {
+                     const url = `/handbook/nomenclature/?${
+                        page ? '&page=' + page : ''
+                     }${search ? '&search=' + search : ''}`;
+                     return url;
+                  }}
+               />
+            </div>
             <div className='content'>
                <label>Color input</label>
                <ColorInput
