@@ -35,6 +35,7 @@ const Option = memo(
       onSelect,
       option,
       value,
+      setActiveIndex,
    }) => {
       const label = option?.label;
       const memoizedLabel = useMemo(() => {
@@ -64,6 +65,11 @@ const Option = memo(
          <StyledOption
             {...getItemProps({
                onClick: onSelect,
+               onPointerMove: () => {
+                  if (index !== activeIndex) {
+                     setActiveIndex(index);
+                  }
+               },
             })}
             aria-selected={ariaSelected}
             key={index}

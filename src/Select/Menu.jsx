@@ -263,6 +263,7 @@ const Menu = ({
                                     listRef={listRef}
                                     onSelect={onSelect}
                                     option={option}
+                                    setActiveIndex={setActiveIndex}
                                     value={value}
                                  />
                               ))}
