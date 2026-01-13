@@ -1,0 +1,143 @@
+import { useRef } from 'react';
+import styled from 'styled-components';
+const EditorContainer = styled.div`
+   border: 1px solid #ccc;
+   border-radius: 8px;
+   width: 90%;
+   margin: 20px auto;
+   overflow: hidden;
+   font-family: 'Arial', sans-serif;
+`;
+const Toolbar = styled.div`
+   display: flex;
+   flex-wrap: wrap;
+   gap: 5px;
+   padding: 10px;
+   background: #f4f4f4;
+   border-bottom: 1px solid #ccc;
+`;
+const Button = styled.button`
+   padding: 5px 10px;
+   cursor: pointer;
+   background: white;
+   border: 1px solid #ddd;
+   border-radius: 4px;
+   &:hover {
+      background: #e0e0e0;
+   }
+`;
+const Select = styled.select`
+   padding: 5px;
+   cursor: pointer;
+`;
+const EditableArea = styled.div`
+   min-height: 400px;
+   padding: 20px;
+   outline: none;
+   background: white;
+   img {
+      max-width: 100%;
+      height: auto;
+   }
+   table {
+      border-collapse: collapse;
+      width: 100%;
+   }
+   table,
+   td {
+      border: 1px solid black;
+      padding: 5px;
+   }
+`;
+const Editor = () => {
+   const editorRef = useRef(null);
+   const execCommand = (command, value = null) => {
+      document.execCommand(command, false, value);
+   };
+   const insertImage = () => {
+      const url = prompt('Rasm URL manzilini kiriting:');
+      if (url) execCommand('insertImage', url);
+   };
+   const insertLink = () => {
+      const url = prompt('Linkni kiriting (masalan: https://google.com):');
+      if (url) execCommand('createLink', url);
+   };
+   const insertTable = () => {
+      const rows = prompt('Qatorlar soni:', 2);
+      const cols = prompt('Ustunlar soni:', 2);
+      let tableHtml = '<table style="width:100%; border:1px solid black;">';
+      for (let i = 0; i < rows; i++) {
+         tableHtml += '<tr>';
+         for (let j = 0; j < cols; j++) {
+            tableHtml += '<td>Katak</td>';
+         }
+         tableHtml += '</tr>';
+      }
+      tableHtml += '</table><br>';
+      execCommand('insertHTML', tableHtml);
+   };
+   return (
+      <EditorContainer>
+         <Toolbar>
+            <Button onClick={() => execCommand('undo')}>↩️</Button>
+            <Button onClick={() => execCommand('redo')}>↪️</Button>
+            <Button onClick={() => execCommand('bold')}>
+               <b>B</b>
+            </Button>
+            <Button onClick={() => execCommand('italic')}>
+               <i>I</i>
+            </Button>
+            <Button onClick={() => execCommand('underline')}>
+               <u>U</u>
+            </Button>
+            <Select onChange={e => execCommand('formatBlock', e.target.value)}>
+               <option value='P'>Paragraph</option>
+               <option value='H1'>H1</option>
+               <option value='H2'>H2</option>
+               <option value='H3'>H3</option>
+            </Select>
+            <Select onChange={e => execCommand('fontSize', e.target.value)}>
+               {[1, 2, 3, 4, 5, 6, 7].map(size => (
+                  <option key={size} value={size}>
+                     Size {size}
+                  </option>
+               ))}
+            </Select>
+            <input
+               type='color'
+               onChange={e => execCommand('foreColor', e.target.value)}
+               title='Text Color'
+            />
+            <input
+               type='color'
+               onChange={e => execCommand('hiliteColor', e.target.value)}
+               title='Highlight'
+            />
+            <Button onClick={() => execCommand('justifyLeft')}>⬅️</Button>
+            <Button onClick={() => execCommand('justifyCenter')}>
+               Centered
+            </Button>
+            <Button onClick={() => execCommand('justifyRight')}>➡️</Button>
+            <Button onClick={() => execCommand('insertUnorderedList')}>
+               • List
+            </Button>
+            <Button onClick={() => execCommand('insertOrderedList')}>
+               1. List
+            </Button>
+            <Button onClick={() => execCommand('subscript')}>X₂</Button>
+            <Button onClick={() => execCommand('superscript')}>X²</Button>
+            <Button onClick={insertLink}>🔗 Link</Button>
+            <Button onClick={insertImage}>🖼️ Image</Button>
+            <Button onClick={insertTable}>📊 Table</Button>
+         </Toolbar>
+         <EditableArea
+            contentEditable={true}
+            ref={editorRef}
+            suppressContentEditableWarning={true}
+         >
+            <p>Matnni shu yerdan yozishni boshlang...</p>
+         </EditableArea>
+      </EditorContainer>
+   );
+};
+export default Editor;
