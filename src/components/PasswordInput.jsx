@@ -1,61 +1,6 @@
-import { bool, func, string } from 'prop-types';
-import { forwardRef, memo, useRef, useState } from 'react';
-import styled from 'styled-components';
-const StyledComponent = styled.div`
-   position: relative;
-   & input {
-      background-color: #ffffff;
-      border-radius: 10px;
-      border: 1.5px solid #e1e1e1;
-      color: #000000;
-      font-size: 16px;
-      font-weight: 500;
-      height: 48px;
-      outline: none;
-      padding-left: 15px;
-      padding-right: 45px;
-      width: 100%;
-      &[data-error='true'] {
-         border: 1.5px solid #ff5749;
-      }
-      &[type='password'] {
-         letter-spacing: 2px;
-      }
-      &[type='text'] {
-         letter-spacing: initial;
-      }
-      &:focus {
-         border: 1.5px solid #3a79f3;
-      }
-      &:disabled {
-         background-color: #f4f4f4;
-         color: #717171;
-         cursor: default;
-      }
-      &::placeholder {
-         letter-spacing: initial;
-      }
-   }
-   & .toggle {
-      align-items: center;
-      border-radius: 20px;
-      color: #808080;
-      cursor: pointer;
-      display: flex;
-      height: 40px;
-      justify-content: center;
-      position: absolute;
-      right: 5px;
-      top: 4px;
-      user-select: none;
-      width: 40px;
-      &[data-disabled='false'] {
-         &:hover {
-            background-color: #f1f1f1;
-         }
-      }
-   }
-`;
+import { bool, func, oneOf, string } from 'prop-types';
+import { memo, useRef, useState } from 'react';
+import { StyledControlInput } from './StyledComponents';
 const Open = () => (
    <svg
       fill='none'
@@ -87,56 +32,67 @@ const Close = () => (
    </svg>
 );
 const PasswordInput = memo(
-   forwardRef(
-      (
-         {
-            isDisabled = false,
-            isError = false,
-            onChange,
-            onFocus,
-            placeholder = '',
-            value = '',
-         },
-         innerRef
-      ) => {
-         const [type, setType] = useState(false);
-         const ref = useRef(null);
-         const currentRef = innerRef ? innerRef : ref;
-         return (
-            <StyledComponent>
-               <input
-                  className='password-input'
-                  data-error={isError}
-                  disabled={isDisabled}
-                  onChange={e => onChange(e.target.value)}
-                  onFocus={onFocus}
-                  placeholder={placeholder}
-                  ref={currentRef}
-                  type={type ? 'text' : 'password'}
-                  value={value}
-               />
-               <div
-                  className='toggle'
-                  data-disabled={isDisabled}
-                  onClick={() => {
-                     setType(!type);
-                     currentRef.current.focus();
-                  }}
-               >
-                  {type ? <Close /> : <Open />}
-               </div>
-            </StyledComponent>
-         );
-      },
-      {}
-   )
+   ({
+      'data-cy': dataCY,
+      error = '',
+      isDisabled = false,
+      name,
+      onBlur,
+      onChange,
+      onFocus,
+      placeholder = '',
+      ref,
+      size = 'md',
+      value = '',
+   }) => {
+      const [type, setType] = useState(false);
+      const currentRef = useRef(null);
+      const innerRef = ref ? ref : currentRef;
+      return (
+         <StyledControlInput>
+            <input
+               className='password-input'
+               data-cy={dataCY}
+               data-error={!!error}
+               data-size={size}
+               disabled={!!isDisabled}
+               name={name}
+               onBlur={onBlur}
+               onChange={e => onChange(e.target.value)}
+               onFocus={onFocus}
+               placeholder={placeholder}
+               ref={innerRef}
+               type={type ? 'text' : 'password'}
+               value={value}
+            />
+            <div
+               className='dropdown-trigger'
+               data-disabled={!!isDisabled}
+               data-size={size}
+               onClick={() => {
+                  setType(!type);
+                  if (innerRef?.current) {
+                     innerRef.current.focus();
+                  }
+               }}
+            >
+               {type ? <Close /> : <Open />}
+            </div>
+            {!!error && <h5 data-size={size}>{error}</h5>}
+         </StyledControlInput>
+      );
+   },
 );
 PasswordInput.propTypes = {
+   'data-cy': string,
+   error: string,
    isDisabled: bool,
-   isError: bool,
+   name: string,
+   onBlur: func,
    onChange: func,
    onFocus: func,
    placeholder: string,
+   size: oneOf(['lg', 'md', 'sm']),
    value: string,
 };
 export default PasswordInput;

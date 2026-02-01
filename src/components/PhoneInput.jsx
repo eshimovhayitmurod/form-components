@@ -1,82 +1,73 @@
-import { bool, func, string } from 'prop-types';
-import { forwardRef, memo } from 'react';
-import ReactInputMask from 'react-input-mask';
-import styled from 'styled-components';
-const StyledInput = styled.input`
-   background-color: #ffffff;
-   border-radius: 10px;
-   border: 1.5px solid #e1e1e1;
-   font-size: 17px;
-   font-weight: 500;
-   height: 48px;
-   outline: none;
-   padding-left: 17px;
-   width: 100%;
-   &[data-error='true'] {
-      border: 1.5px solid #ff5749;
-   }
-   &:focus {
-      border: 1.5px solid #3a79f3;
-   }
-   &:disabled {
-      background-color: #f4f4f4;
-      border: 1.5px solid #e1e1e1;
-      color: #717171;
-   }
-`;
+import { bool, func, oneOf, string } from 'prop-types';
+import { memo, useState } from 'react';
+import { IMaskInput } from 'react-imask';
+import { StyledInput } from './StyledComponents';
 const PhoneInput = memo(
-   forwardRef(
-      (
-         {
-            isDisabled = false,
-            isError = false,
-            onChange,
-            onFocus,
-            placeholder = '',
-            value = '',
-         },
-         ref
-      ) => (
-         <ReactInputMask
-            data-error={isError}
-            disabled={isDisabled}
-            formatChars={{ a: '[0-9]' }}
-            inputMode='numeric'
-            mask='+998 (aa) aaa aa aa'
-            maskChar=''
-            onFocus={onFocus}
-            placeholder={placeholder}
-            ref={ref}
-            type='text'
-            value={value}
-            onChange={e => {
-               const value = String(e.target.value || '')
-                  .replace('(', '')
-                  .replace(')', '')
-                  .replace('+', '')
-                  .replace(/ /g, '');
-               onChange(value);
-            }}
-         >
-            {props => (
-               <StyledInput
-                  {...props}
-                  className='phone-input'
-                  disabled={isDisabled}
-                  ref={ref}
-               />
-            )}
-         </ReactInputMask>
-      ),
-      {}
-   )
+   ({
+      'data-cy': dataCY,
+      error = '',
+      isDisabled = false,
+      name,
+      onBlur,
+      onChange,
+      onFocus,
+      placeholder = '',
+      ref,
+      size = 'md',
+      value = '',
+   }) => {
+      const [lazy, setLazy] = useState(true);
+      return (
+         <StyledInput>
+            <IMaskInput
+               className='phone-input'
+               data-cy={dataCY}
+               data-error={!!error}
+               data-size={size}
+               disabled={!!isDisabled}
+               inputMode='numeric'
+               inputRef={ref}
+               lazy={lazy}
+               mask='+998 (00) 000 00 00'
+               name={name}
+               placeholder={placeholder}
+               placeholderChar=' '
+               type='text'
+               value={value}
+               onAccept={value => {
+                  const cleaned = value.replace(/\D/g, '');
+                  const newValue =
+                     cleaned === '998' ? '' : value.replace(/\)|\(| /g, '');
+                  onChange(newValue);
+               }}
+               onBlur={e => {
+                  setLazy(true);
+                  if (typeof onBlur === 'function') {
+                     onBlur(e);
+                  }
+               }}
+               onFocus={e => {
+                  setLazy(false);
+                  if (typeof onFocus === 'function') {
+                     onFocus(e);
+                  }
+               }}
+            />
+            {!!error && <h5 data-size={size}>{error}</h5>}
+         </StyledInput>
+      );
+   },
 );
 PhoneInput.propTypes = {
+   'data-cy': string,
+   error: string,
    isDisabled: bool,
-   isError: bool,
+   name: string,
+   onBlur: func,
    onChange: func,
    onFocus: func,
    placeholder: string,
+   size: oneOf(['lg', 'md', 'sm']),
    value: string,
 };
 export default PhoneInput;

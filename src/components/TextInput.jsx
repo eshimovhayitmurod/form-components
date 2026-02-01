@@ -1,45 +1,29 @@
-import { bool, func, string } from 'prop-types';
-import { forwardRef, memo } from 'react';
-import styled from 'styled-components';
-const StyledInput = styled.input`
-   background-color: #ffffff;
-   border-radius: 10px;
-   border: 1.5px solid #e1e1e1;
-   font-size: 17px;
-   font-weight: 500;
-   height: 48px;
-   outline: none;
-   padding-left: 17px;
-   width: 100%;
-   &[data-error='true'] {
-      border: 1.5px solid #ff5749;
-   }
-   &:focus {
-      border: 1.5px solid #3a79f3;
-   }
-   &:disabled {
-      background-color: #f4f4f4;
-      border: 1.5px solid #e1e1e1;
-      color: #717171;
-   }
-`;
+import { bool, func, oneOf, string } from 'prop-types';
+import { memo } from 'react';
+import { StyledInput } from './StyledComponents';
 const TextInput = memo(
-   forwardRef(
-      (
-         {
-            isDisabled = false,
-            isError = false,
-            onChange,
-            onFocus,
-            placeholder = '',
-            value = '',
-         },
-         ref
-      ) => (
-         <StyledInput
+   ({
+      'data-cy': dataCY,
+      error = '',
+      isDisabled = false,
+      name,
+      onBlur,
+      onChange,
+      onFocus,
+      placeholder = '',
+      ref,
+      size = 'md',
+      value = '',
+   }) => (
+      <StyledInput>
+         <input
             className='text-input'
-            data-error={isError}
-            disabled={isDisabled}
+            data-cy={dataCY}
+            data-error={!!error}
+            data-size={size}
+            disabled={!!isDisabled}
+            name={name}
+            onBlur={onBlur}
             onChange={e => onChange(e.target.value)}
             onFocus={onFocus}
             placeholder={placeholder}
@@ -47,16 +31,20 @@ const TextInput = memo(
             type='text'
             value={value}
          />
-      ),
-      {}
-   )
+         {!!error && <h5 data-size={size}>{error}</h5>}
+      </StyledInput>
+   ),
 );
 TextInput.propTypes = {
+   'data-cy': string,
+   error: string,
    isDisabled: bool,
-   isError: bool,
+   name: string,
+   onBlur: func,
    onChange: func,
    onFocus: func,
    placeholder: string,
+   size: oneOf(['lg', 'md', 'sm']),
    value: string,
 };
 export default TextInput;

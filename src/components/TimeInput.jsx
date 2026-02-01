@@ -1,77 +1,74 @@
-import Input from 'cleave.js/react';
-import { bool, func, string } from 'prop-types';
-import { forwardRef, memo } from 'react';
-import styled from 'styled-components';
-const StyledInput = styled(Input)`
-   background-color: transparent;
-   border-radius: 10px;
-   border: 1.5px solid #e1e1e1;
-   font-size: 17px;
-   font-weight: 500;
-   height: 48px;
-   outline: none;
-   padding-left: 17px;
-   width: 100%;
-   &[data-error='true'] {
-      border: 1.5px solid #ff5749;
-   }
-   &:focus {
-      border: 1.5px solid #3a79f3;
-   }
-   &:disabled {
-      background-color: #f4f4f4;
-      border: 1.5px solid #e1e1e1;
-      color: #717171;
-   }
-`;
-const TextInput = memo(
-   forwardRef(
-      (
-         {
-            isDisabled = false,
-            isError = false,
-            onChange,
-            onFocus,
-            placeholder = '',
-            value = '',
-         },
-         ref
-      ) => (
-         <StyledInput
+import { bool, func, oneOf, string } from 'prop-types';
+import { memo } from 'react';
+import { IMask, IMaskInput } from 'react-imask';
+import { StyledInput } from './StyledComponents';
+const TimeInput = memo(
+   ({
+      'data-cy': dataCY,
+      error = '',
+      isDisabled = false,
+      name,
+      onBlur,
+      onChange,
+      onFocus,
+      placeholder = '',
+      ref,
+      size = 'md',
+      value = '',
+   }) => (
+      <StyledInput>
+         <IMaskInput
+            autofix={true}
             className='time-input'
-            data-error={isError}
-            disabled={isDisabled}
+            data-cy={dataCY}
+            data-error={!!error}
+            data-size={size}
+            disabled={!!isDisabled}
             inputMode='numeric'
-            onChange={e => onChange(e.target.value)}
+            inputRef={ref}
+            mask='HH:MM:SS'
+            name={name}
+            onAccept={onChange}
+            onBlur={onBlur}
             onFocus={onFocus}
             placeholder={placeholder}
             type='text'
             value={value}
-            options={{
-               time: true,
-               timePattern: ['h', 'm', 's'],
-            }}
-            htmlRef={inputNode => {
-               if (!ref) {
-                  return;
-               }
-               if (typeof ref === 'function') {
-                  ref(inputNode);
-               } else {
-                  ref.current = inputNode;
-               }
+            blocks={{
+               HH: {
+                  from: 0,
+                  mask: IMask.MaskedRange,
+                  maxLength: 2,
+                  to: 23,
+               },
+               MM: {
+                  from: 0,
+                  mask: IMask.MaskedRange,
+                  maxLength: 2,
+                  to: 59,
+               },
+               SS: {
+                  from: 0,
+                  mask: IMask.MaskedRange,
+                  maxLength: 2,
+                  to: 59,
+               },
             }}
          />
-      ),
-      {}
-   )
+         {!!error && <h5 data-size={size}>{error}</h5>}
+      </StyledInput>
+   ),
 );
-TextInput.propTypes = {
+TimeInput.propTypes = {
+   'data-cy': string,
+   error: bool,
    isDisabled: bool,
-   isError: bool,
+   name: string,
+   onBlur: func,
    onChange: func,
    onFocus: func,
    placeholder: string,
+   size: oneOf(['lg', 'md', 'sm']),
    value: string,
 };
-export default TextInput;
+export default TimeInput;

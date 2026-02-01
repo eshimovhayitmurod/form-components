@@ -87,7 +87,7 @@ const FileUploader = memo(
                onChange(newValue);
             }
          },
-         [onChange, isDisabled, value],
+         [onChange, isDisabled, value, maxFiles],
       );
       const disabled = useMemo(
          () => isDisabled || value?.length >= maxFiles,
