@@ -1,1120 +1,421 @@
-import { Editor as Tinymce } from '@tinymce/tinymce-react';
-import { func, string } from 'prop-types';
+import Highlight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useEffect } from 'react';
 import styled from 'styled-components';
-import 'tinymce';
-import tinymce from 'tinymce';
-import 'tinymce/icons/default';
-import 'tinymce/plugins/advlist';
-import 'tinymce/plugins/anchor';
-import 'tinymce/plugins/autolink';
-import 'tinymce/plugins/charmap';
-import 'tinymce/plugins/code';
-import 'tinymce/plugins/help';
-import 'tinymce/plugins/hr';
-import 'tinymce/plugins/image';
-import 'tinymce/plugins/insertdatetime';
-import 'tinymce/plugins/link';
-import 'tinymce/plugins/lists';
-import 'tinymce/plugins/media';
-import 'tinymce/plugins/nonbreaking';
-import 'tinymce/plugins/searchreplace';
-import 'tinymce/plugins/table';
-import 'tinymce/plugins/template';
-import 'tinymce/plugins/wordcount';
-import contentCss from 'tinymce/skins/content/default/content.min.css';
-import contentUICss from 'tinymce/skins/ui/oxide/content.min.css';
-import 'tinymce/skins/ui/oxide/skin.min.css';
-import 'tinymce/themes/silver';
-const StyledElement = styled.div`
-   & .tox-tinymce {
-      border-radius: 12px;
-      border: 1px solid #cccccc;
-      height: 450px !important;
-   }
-   & .tox {
-      & .tox-editor-header {
-         z-index: initial;
-         & button {
-            font-family: 'Gilroy', sans-serif !important;
+const StyledEditor = styled.div`
+   border-radius: 8px;
+   border: 1px solid #ccc;
+   overflow: hidden;
+   width: 100%;
+   & .editor-toolbar {
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      padding: 5px;
+      & button {
+         background-color: transparent;
+         border: none;
+         border-radius: 12px;
+         cursor: pointer;
+         width: 32px;
+         height: 32px;
+         outline: none;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         &[data-active='true'] {
+            background-color: #e2e2e2;
          }
-         & .tox-mbtn {
-            cursor: pointer;
-            &:hover {
-               background: #f7f8fc !important;
-            }
-         }
-         & .tox-mbtn--active {
-            background: #f7f8fc !important;
-         }
-         & .tox-mbtn__select-label {
-            color: #696f85;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-         }
-         & .tox-toolbar__group {
-            border: none !important;
-         }
-      }
-      & .tox-tbtn--bespoke {
-         & .tox-tbtn__select-label {
-            color: #696f85;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 500;
-            width: initial !important;
-         }
-      }
-      & .tox-tbtn--enabled {
-         background: #f7f8fc;
-      }
-      & .tox-tbtn {
-         cursor: pointer !important;
          &:hover {
-            background: #f7f8fc;
+            background-color: #f1f1f1;
          }
-         & svg {
-            fill: #696f85 !important;
-         }
-      }
-      & .tox-statusbar {
-         display: none;
       }
    }
-   & .wrs_tickContainer {
-      display: none !important;
+   .ProseMirror {
+      height: 350px;
+      max-height: 350px;
+      min-height: 350px;
+      outline: none;
+      overflow-y: auto;
+      padding: 10px;
+      &:focus {
+         outline: 1px solid blue;
+      }
    }
 `;
-const init = {
-   content_css: false,
-   height: 450,
-   menubar: 'file edit view insert format table tools help',
-   paste_as_text: true,
-   plugins:
-      'paste codesample advlist autolink link image lists charmap anchor spellchecker searchreplace wordcount code fullscreen insertdatetime media nonbreaking table template help',
-   skin: false,
-   toolbar_mode: 'wrap',
-   toolbar: [
+const MenuBar = ({ editor }) => {
+   if (!editor) return null;
+   const buttons = [
       {
-         items: ['undo', 'redo'],
-         name: 'history',
+         action: () => editor.chain().focus().undo().run(),
+         active: false,
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M9.70711 3.70711C10.0976 3.31658 10.0976 2.68342 9.70711 2.29289C9.31658 1.90237 8.68342 1.90237 8.29289 2.29289L3.29289 7.29289C2.90237 7.68342 2.90237 8.31658 3.29289 8.70711L8.29289 13.7071C8.68342 14.0976 9.31658 14.0976 9.70711 13.7071C10.0976 13.3166 10.0976 12.6834 9.70711 12.2929L6.41421 9H14.5C15.0909 9 15.6761 9.1164 16.2221 9.34254C16.768 9.56869 17.2641 9.90016 17.682 10.318C18.0998 10.7359 18.4313 11.232 18.6575 11.7779C18.8836 12.3239 19 12.9091 19 13.5C19 14.0909 18.8836 14.6761 18.6575 15.2221C18.4313 15.768 18.0998 16.2641 17.682 16.682C17.2641 17.0998 16.768 17.4313 16.2221 17.6575C15.6761 17.8836 15.0909 18 14.5 18H11C10.4477 18 10 18.4477 10 19C10 19.5523 10.4477 20 11 20H14.5C15.3536 20 16.1988 19.8319 16.9874 19.5052C17.7761 19.1786 18.4926 18.6998 19.0962 18.0962C19.6998 17.4926 20.1786 16.7761 20.5052 15.9874C20.8319 15.1988 21 14.3536 21 13.5C21 12.6464 20.8319 11.8012 20.5052 11.0126C20.1786 10.2239 19.6998 9.50739 19.0962 8.90381C18.4926 8.30022 17.7761 7.82144 16.9874 7.49478C16.1988 7.16813 15.3536 7 14.5 7H6.41421L9.70711 3.70711Z'
+                  fill='currentColor'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['fontselect'],
-         name: 'fontselect',
+         action: () => editor.chain().focus().redo().run(),
+         active: false,
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M15.7071 2.29289C15.3166 1.90237 14.6834 1.90237 14.2929 2.29289C13.9024 2.68342 13.9024 3.31658 14.2929 3.70711L17.5858 7H9.5C7.77609 7 6.12279 7.68482 4.90381 8.90381C3.68482 10.1228 3 11.7761 3 13.5C3 14.3536 3.16813 15.1988 3.49478 15.9874C3.82144 16.7761 4.30023 17.4926 4.90381 18.0962C6.12279 19.3152 7.77609 20 9.5 20H13C13.5523 20 14 19.5523 14 19C14 18.4477 13.5523 18 13 18H9.5C8.30653 18 7.16193 17.5259 6.31802 16.682C5.90016 16.2641 5.56869 15.768 5.34254 15.2221C5.1164 14.6761 5 14.0909 5 13.5C5 12.3065 5.47411 11.1619 6.31802 10.318C7.16193 9.47411 8.30653 9 9.5 9H17.5858L14.2929 12.2929C13.9024 12.6834 13.9024 13.3166 14.2929 13.7071C14.6834 14.0976 15.3166 14.0976 15.7071 13.7071L20.7071 8.70711C21.0976 8.31658 21.0976 7.68342 20.7071 7.29289L15.7071 2.29289Z'
+                  fill='currentColor'
+               ></path>
+            </svg>
+         ),
       },
       {
-         className: 'fontsizeselect',
-         items: ['fontsizeselect'],
-         name: 'fontsizeselect',
+         action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+         active: 'heading',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  d='M6 3C6.55228 3 7 3.44772 7 4V11H17V4C17 3.44772 17.4477 3 18 3C18.5523 3 19 3.44772 19 4V20C19 20.5523 18.5523 21 18 21C17.4477 21 17 20.5523 17 20V13H7V20C7 20.5523 6.55228 21 6 21C5.44772 21 5 20.5523 5 20V4C5 3.44772 5.44772 3 6 3Z'
+                  fill='currentColor'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['bold', 'italic', 'underline', 'strikethrough'],
-         name: 'formatting',
+         action: () => editor.chain().focus().toggleBold().run(),
+         active: 'bold',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M6 2.5C5.17157 2.5 4.5 3.17157 4.5 4V20C4.5 20.8284 5.17157 21.5 6 21.5H15C16.4587 21.5 17.8576 20.9205 18.8891 19.8891C19.9205 18.8576 20.5 17.4587 20.5 16C20.5 14.5413 19.9205 13.1424 18.8891 12.1109C18.6781 11.9 18.4518 11.7079 18.2128 11.5359C19.041 10.5492 19.5 9.29829 19.5 8C19.5 6.54131 18.9205 5.14236 17.8891 4.11091C16.8576 3.07946 15.4587 2.5 14 2.5H6ZM14 10.5C14.663 10.5 15.2989 10.2366 15.7678 9.76777C16.2366 9.29893 16.5 8.66304 16.5 8C16.5 7.33696 16.2366 6.70107 15.7678 6.23223C15.2989 5.76339 14.663 5.5 14 5.5H7.5V10.5H14ZM7.5 18.5V13.5H15C15.663 13.5 16.2989 13.7634 16.7678 14.2322C17.2366 14.7011 17.5 15.337 17.5 16C17.5 16.663 17.2366 17.2989 16.7678 17.7678C16.2989 18.2366 15.663 18.5 15 18.5H7.5Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['outdent', 'indent'],
-         name: 'indentation',
+         action: () => editor.chain().focus().toggleItalic().run(),
+         active: 'italic',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  d='M15.0222 3H19C19.5523 3 20 3.44772 20 4C20 4.55228 19.5523 5 19 5H15.693L10.443 19H14C14.5523 19 15 19.4477 15 20C15 20.5523 14.5523 21 14 21H9.02418C9.00802 21.0004 8.99181 21.0004 8.97557 21H5C4.44772 21 4 20.5523 4 20C4 19.4477 4.44772 19 5 19H8.30704L13.557 5H10C9.44772 5 9 4.55228 9 4C9 3.44772 9.44772 3 10 3H14.9782C14.9928 2.99968 15.0075 2.99967 15.0222 3Z'
+                  fill='currentColor'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['alignleft', 'aligncenter', 'alignright', 'alignjustify'],
-         name: 'alignment',
+         action: () => editor.chain().focus().toggleUnderline().run(),
+         active: 'underline',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M7 4C7 3.44772 6.55228 3 6 3C5.44772 3 5 3.44772 5 4V10C5 11.8565 5.7375 13.637 7.05025 14.9497C8.36301 16.2625 10.1435 17 12 17C13.8565 17 15.637 16.2625 16.9497 14.9497C18.2625 13.637 19 11.8565 19 10V4C19 3.44772 18.5523 3 18 3C17.4477 3 17 3.44772 17 4V10C17 11.3261 16.4732 12.5979 15.5355 13.5355C14.5979 14.4732 13.3261 15 12 15C10.6739 15 9.40215 14.4732 8.46447 13.5355C7.52678 12.5979 7 11.3261 7 10V4ZM4 19C3.44772 19 3 19.4477 3 20C3 20.5523 3.44772 21 4 21H20C20.5523 21 21 20.5523 21 20C21 19.4477 20.5523 19 20 19H4Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['numlist', 'bullist', 'checklist'],
-         name: 'list',
+         action: () => editor.chain().focus().toggleStrike().run(),
+         active: 'strike',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  d='M9.00039 3H16.0001C16.5524 3 17.0001 3.44772 17.0001 4C17.0001 4.55229 16.5524 5 16.0001 5H9.00011C8.68006 4.99983 8.36412 5.07648 8.07983 5.22349C7.79555 5.37051 7.55069 5.5836 7.36585 5.84487C7.181 6.10614 7.06155 6.40796 7.01754 6.72497C6.97352 7.04198 7.00623 7.36492 7.11292 7.66667C7.29701 8.18737 7.02414 8.75872 6.50344 8.94281C5.98274 9.1269 5.4114 8.85403 5.2273 8.33333C5.01393 7.72984 4.94851 7.08396 5.03654 6.44994C5.12456 5.81592 5.36346 5.21229 5.73316 4.68974C6.10285 4.1672 6.59256 3.74101 7.16113 3.44698C7.72955 3.15303 8.36047 2.99975 9.00039 3Z'
+                  fill='currentColor'
+               ></path>
+               <path
+                  d='M18 13H20C20.5523 13 21 12.5523 21 12C21 11.4477 20.5523 11 20 11H4C3.44772 11 3 11.4477 3 12C3 12.5523 3.44772 13 4 13H14C14.7956 13 15.5587 13.3161 16.1213 13.8787C16.6839 14.4413 17 15.2044 17 16C17 16.7956 16.6839 17.5587 16.1213 18.1213C15.5587 18.6839 14.7956 19 14 19H6C5.44772 19 5 19.4477 5 20C5 20.5523 5.44772 21 6 21H14C15.3261 21 16.5979 20.4732 17.5355 19.5355C18.4732 18.5979 19 17.3261 19 16C19 14.9119 18.6453 13.8604 18 13Z'
+                  fill='currentColor'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['table'],
-         name: 'table',
+         action: () => editor.chain().focus().toggleBulletList().run(),
+         active: 'bulletList',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M7 6C7 5.44772 7.44772 5 8 5H21C21.5523 5 22 5.44772 22 6C22 6.55228 21.5523 7 21 7H8C7.44772 7 7 6.55228 7 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M7 12C7 11.4477 7.44772 11 8 11H21C21.5523 11 22 11.4477 22 12C22 12.5523 21.5523 13 21 13H8C7.44772 13 7 12.5523 7 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M7 18C7 17.4477 7.44772 17 8 17H21C21.5523 17 22 17.4477 22 18C22 18.5523 21.5523 19 21 19H8C7.44772 19 7 18.5523 7 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 6C2 5.44772 2.44772 5 3 5H3.01C3.56228 5 4.01 5.44772 4.01 6C4.01 6.55228 3.56228 7 3.01 7H3C2.44772 7 2 6.55228 2 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 12C2 11.4477 2.44772 11 3 11H3.01C3.56228 11 4.01 11.4477 4.01 12C4.01 12.5523 3.56228 13 3.01 13H3C2.44772 13 2 12.5523 2 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 18C2 17.4477 2.44772 17 3 17H3.01C3.56228 17 4.01 17.4477 4.01 18C4.01 18.5523 3.56228 19 3.01 19H3C2.44772 19 2 18.5523 2 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: [
-            'forecolor',
-            'backcolor',
-            'casechange',
-            'permanentpen',
-            'formatpainter',
-            'removeformat',
-         ],
-         name: 'colors',
+         action: () => editor.chain().focus().toggleHighlight().run(),
+         active: 'highlight',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M14.7072 4.70711C15.0977 4.31658 15.0977 3.68342 14.7072 3.29289C14.3167 2.90237 13.6835 2.90237 13.293 3.29289L8.69294 7.89286L8.68594 7.9C8.13626 8.46079 7.82837 9.21474 7.82837 10C7.82837 10.2306 7.85491 10.4584 7.90631 10.6795L2.29289 16.2929C2.10536 16.4804 2 16.7348 2 17V20C2 20.5523 2.44772 21 3 21H12C12.2652 21 12.5196 20.8946 12.7071 20.7071L15.3205 18.0937C15.5416 18.1452 15.7695 18.1717 16.0001 18.1717C16.7853 18.1717 17.5393 17.8639 18.1001 17.3142L22.7072 12.7071C23.0977 12.3166 23.0977 11.6834 22.7072 11.2929C22.3167 10.9024 21.6835 10.9024 21.293 11.2929L16.6971 15.8887C16.5105 16.0702 16.2605 16.1717 16.0001 16.1717C15.7397 16.1717 15.4897 16.0702 15.303 15.8887L10.1113 10.697C9.92992 10.5104 9.82837 10.2604 9.82837 10C9.82837 9.73963 9.92992 9.48958 10.1113 9.30297L14.7072 4.70711ZM13.5858 17L9.00004 12.4142L4 17.4142V19H11.5858L13.5858 17Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['subscript', 'superscript'],
-         name: 'math',
+         action: () => editor.chain().focus().toggleSubscript().run(),
+         active: 'subscript',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M12.7071 7.29289C13.0976 7.68342 13.0976 8.31658 12.7071 8.70711L4.70711 16.7071C4.31658 17.0976 3.68342 17.0976 3.29289 16.7071C2.90237 16.3166 2.90237 15.6834 3.29289 15.2929L11.2929 7.29289C11.6834 6.90237 12.3166 6.90237 12.7071 7.29289Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M3.29289 7.29289C3.68342 6.90237 4.31658 6.90237 4.70711 7.29289L12.7071 15.2929C13.0976 15.6834 13.0976 16.3166 12.7071 16.7071C12.3166 17.0976 11.6834 17.0976 11.2929 16.7071L3.29289 8.70711C2.90237 8.31658 2.90237 7.68342 3.29289 7.29289Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M17.405 1.40657C18.0246 1.05456 18.7463 0.92634 19.4492 1.04344C20.1521 1.16054 20.7933 1.51583 21.2652 2.0497L21.2697 2.05469L21.2696 2.05471C21.7431 2.5975 22 3.28922 22 4.00203C22 5.08579 21.3952 5.84326 20.7727 6.34289C20.1966 6.80531 19.4941 7.13675 18.9941 7.37261C18.9714 7.38332 18.9491 7.39383 18.9273 7.40415C18.4487 7.63034 18.2814 7.78152 18.1927 7.91844C18.1778 7.94155 18.1625 7.96834 18.1473 8.00003H21C21.5523 8.00003 22 8.44774 22 9.00003C22 9.55231 21.5523 10 21 10H17C16.4477 10 16 9.55231 16 9.00003C16 8.17007 16.1183 7.44255 16.5138 6.83161C16.9107 6.21854 17.4934 5.86971 18.0728 5.59591C18.6281 5.33347 19.1376 5.09075 19.5208 4.78316C19.8838 4.49179 20 4.25026 20 4.00203C20 3.77192 19.9178 3.54865 19.7646 3.37182C19.5968 3.18324 19.3696 3.05774 19.1205 3.01625C18.8705 2.97459 18.6137 3.02017 18.3933 3.14533C18.1762 3.26898 18.0191 3.45826 17.9406 3.67557C17.7531 4.19504 17.18 4.46414 16.6605 4.27662C16.141 4.0891 15.8719 3.51596 16.0594 2.99649C16.303 2.3219 16.7817 1.76125 17.4045 1.40689L17.405 1.40657Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['tiny_mce_wiris_formulaEditor'],
-         name: 'viris-math',
+         action: () => editor.chain().focus().toggleSuperscript().run(),
+         active: 'superscript',
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M3.29289 7.29289C3.68342 6.90237 4.31658 6.90237 4.70711 7.29289L12.7071 15.2929C13.0976 15.6834 13.0976 16.3166 12.7071 16.7071C12.3166 17.0976 11.6834 17.0976 11.2929 16.7071L3.29289 8.70711C2.90237 8.31658 2.90237 7.68342 3.29289 7.29289Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M12.7071 7.29289C13.0976 7.68342 13.0976 8.31658 12.7071 8.70711L4.70711 16.7071C4.31658 17.0976 3.68342 17.0976 3.29289 16.7071C2.90237 16.3166 2.90237 15.6834 3.29289 15.2929L11.2929 7.29289C11.6834 6.90237 12.3166 6.90237 12.7071 7.29289Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M17.4079 14.3995C18.0284 14.0487 18.7506 13.9217 19.4536 14.0397C20.1566 14.1578 20.7977 14.5138 21.2696 15.0481L21.2779 15.0574L21.2778 15.0575C21.7439 15.5988 22 16.2903 22 17C22 18.0823 21.3962 18.8401 20.7744 19.3404C20.194 19.8073 19.4858 20.141 18.9828 20.378C18.9638 20.387 18.9451 20.3958 18.9266 20.4045C18.4473 20.6306 18.2804 20.7817 18.1922 20.918C18.1773 20.9412 18.1619 20.9681 18.1467 21H21C21.5523 21 22 21.4477 22 22C22 22.5523 21.5523 23 21 23H17C16.4477 23 16 22.5523 16 22C16 21.1708 16.1176 20.4431 16.5128 19.832C16.9096 19.2184 17.4928 18.8695 18.0734 18.5956C18.6279 18.334 19.138 18.0901 19.5207 17.7821C19.8838 17.49 20 17.2477 20 17C20 16.7718 19.9176 16.5452 19.7663 16.3672C19.5983 16.1792 19.3712 16.0539 19.1224 16.0121C18.8722 15.9701 18.6152 16.015 18.3942 16.1394C18.1794 16.2628 18.0205 16.4549 17.9422 16.675C17.7572 17.1954 17.1854 17.4673 16.665 17.2822C16.1446 17.0972 15.8728 16.5254 16.0578 16.005C16.2993 15.3259 16.7797 14.7584 17.4039 14.4018L17.4079 14.3995L17.4079 14.3995Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['tiny_mce_wiris_formulaEditorChemistry'],
-         name: 'viris-chem',
+         action: () => editor.chain().focus().setTextAlign('left').run(),
+         active: { textAlign: 'left' },
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M2 6C2 5.44772 2.44772 5 3 5H21C21.5523 5 22 5.44772 22 6C22 6.55228 21.5523 7 21 7H3C2.44772 7 2 6.55228 2 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 12C2 11.4477 2.44772 11 3 11H15C15.5523 11 16 11.4477 16 12C16 12.5523 15.5523 13 15 13H3C2.44772 13 2 12.5523 2 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 18C2 17.4477 2.44772 17 3 17H17C17.5523 17 18 17.4477 18 18C18 18.5523 17.5523 19 17 19H3C2.44772 19 2 18.5523 2 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['charmap'],
-         name: 'chars',
+         action: () => editor.chain().focus().setTextAlign('center').run(),
+         active: { textAlign: 'center' },
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M2 6C2 5.44772 2.44772 5 3 5H21C21.5523 5 22 5.44772 22 6C22 6.55228 21.5523 7 21 7H3C2.44772 7 2 6.55228 2 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M6 12C6 11.4477 6.44772 11 7 11H17C17.5523 11 18 11.4477 18 12C18 12.5523 17.5523 13 17 13H7C6.44772 13 6 12.5523 6 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M4 18C4 17.4477 4.44772 17 5 17H19C19.5523 17 20 17.4477 20 18C20 18.5523 19.5523 19 19 19H5C4.44772 19 4 18.5523 4 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
       {
-         items: ['image', 'link'],
-         name: 'file',
+         action: () => editor.chain().focus().setTextAlign('right').run(),
+         active: { textAlign: 'right' },
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M2 6C2 5.44772 2.44772 5 3 5H21C21.5523 5 22 5.44772 22 6C22 6.55228 21.5523 7 21 7H3C2.44772 7 2 6.55228 2 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M8 12C8 11.4477 8.44772 11 9 11H21C21.5523 11 22 11.4477 22 12C22 12.5523 21.5523 13 21 13H9C8.44772 13 8 12.5523 8 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M6 18C6 17.4477 6.44772 17 7 17H21C21.5523 17 22 17.4477 22 18C22 18.5523 21.5523 19 21 19H7C6.44772 19 6 18.5523 6 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
       },
-   ],
+      {
+         action: () => editor.chain().focus().setTextAlign('justify').run(),
+         active: { textAlign: 'justify' },
+         icon: (
+            <svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'>
+               <path
+                  clipRule='evenodd'
+                  d='M2 6C2 5.44772 2.44772 5 3 5H21C21.5523 5 22 5.44772 22 6C22 6.55228 21.5523 7 21 7H3C2.44772 7 2 6.55228 2 6Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 12C2 11.4477 2.44772 11 3 11H21C21.5523 11 22 11.4477 22 12C22 12.5523 21.5523 13 21 13H3C2.44772 13 2 12.5523 2 12Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+               <path
+                  clipRule='evenodd'
+                  d='M2 18C2 17.4477 2.44772 17 3 17H21C21.5523 17 22 17.4477 22 18C22 18.5523 21.5523 19 21 19H3C2.44772 19 2 18.5523 2 18Z'
+                  fill='currentColor'
+                  fillRule='evenodd'
+               ></path>
+            </svg>
+         ),
+      },
+   ];
+   return (
+      <div className='editor-toolbar'>
+         {buttons.map((btn, index) => (
+            <button
+               key={index}
+               data-active={!!(btn.active && editor.isActive(btn.active))}
+               onClick={e => {
+                  e.preventDefault();
+                  btn.action();
+               }}
+            >
+               {btn.icon}
+            </button>
+         ))}
+      </div>
+   );
 };
-const uz = {
-   Redo: 'Bekor qilish',
-   Undo: 'Orqaga qaytarish',
-   Cut: 'Kesib olish',
-   Copy: 'Nusxa olish',
-   Paste: 'Qo\u2018yish',
-   'Select all': 'Barchasini belgilash',
-   'New document': 'Yangi hujjat',
-   Ok: 'Bajarish',
-   Cancel: 'Bekor qilish',
-   'Visual aids': 'Ko\u2018rgazmali o\u2018quv qurollar',
-   Bold: "Yo'g'on",
-   Italic: 'Yotiq',
-   Underline: 'Tagi chizilgan',
-   Strikethrough: "O'chirilgan yozuv",
-   Superscript: 'Yuqori yozuv',
-   Subscript: 'Quyi yozuv',
-   'Clear formatting': 'Formatlashni tozalash',
-   'Align left': 'Chapga tekislash',
-   'Align center': 'Markazga tekislash',
-   'Align right': "O'ngga tekislash",
-   Justify: 'Ikki tomondan tekislash',
-   'Bullet list': 'Nuqtali ro\u2018yxat',
-   'Numbered list': 'Raqamli ro\u2018yxat',
-   'Decrease indent': 'Satr boshini kamaytirish',
-   'Increase indent': 'Satr boshini oshirish',
-   Close: 'Yopish',
-   Formats: 'Formatlar',
-   "Your browser doesn't support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.":
-      'Sizning brauzeringiz buferga to\u2018g\u2018ridan-to\u2018g\u2018ri kirish qo\u2018llab-quvvatlamaydi. O\u2018rniga klaviaturaning Ctrl+X/C/V qisqartirishlarni foydalaning.',
-   Headers: 'Sarlavhalar',
-   'Header 1': 'Sarlavha 1',
-   'Header 2': 'Sarlavha 2',
-   'Header 3': 'Sarlavha 3',
-   'Header 4': 'Sarlavha 4',
-   'Header 5': 'Sarlavha 5',
-   'Header 6': 'Sarlavha 6',
-   Headings: 'Sarlavhalar',
-   'Heading 1': 'Sarlavha 1',
-   'Heading 2': 'Sarlavha 2',
-   'Heading 3': 'Sarlavha 3',
-   'Heading 4': 'Sarlavha 4',
-   'Heading 5': 'Sarlavha 5',
-   'Heading 6': 'Sarlavha 6',
-   Div: 'Div',
-   Pre: 'Pre',
-   Code: 'Kod',
-   Paragraph: 'Paragraf',
-   Blockquote: 'Matn blok parchasi',
-   Inline: 'Bir qator ketma-ketlikda',
-   Blocks: 'Bloklar',
-   'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.':
-      "Qo'shish oddiy matn rejimida amalga oshiriladi. Ushbu hususiyatni o'chirmaguningizcha, kontent oddiy matn sifatida qo'shiladi.",
-   'Font Family': 'Srift turi',
-   'Font Sizes': 'Shrift kattaligi',
-   Class: 'Klass',
-   'Browse for an image': 'Rasmni yuklash',
-   OR: 'YOKI',
-   'Drop an image here': "Bu erga rasmni olib o'ting",
-   Upload: 'Yuklash',
-   Block: 'Blok',
-   Align: 'Saflamoq',
-   Default: 'Standart',
-   Circle: 'Doira',
-   Disc: 'Disk',
-   Square: 'Kvadrat',
-   'Lower Alpha': 'Kichik lotincha',
-   'Lower Greek': 'Pastki yunon',
-   'Lower Roman': 'Kichik kirilcha',
-   'Upper Alpha': 'Katta lotincha',
-   'Upper Roman': 'Katta kirilcha',
-   Anchor: 'Langar',
-   Name: 'Nomi',
-   Id: 'Id',
-   'Id should start with a letter, followed only by letters, numbers, dashes, dots, colons or underscores.':
-      "Id faqat harf bilan boshlanishi lozim, o'z ichiga faqat harflar, sonlar, tire, nuqtalar, pastgi chiziqlardan iborat bo'lishi mumkin",
-   'You have unsaved changes are you sure you want to navigate away?':
-      "Sizda saqlanmagan o'zgartirishlar bor. Boshqa yerga chiqib ketish uchun ishonchingiz komilmi?",
-   'Restore last draft': 'Oxirgi ',
-   'Special character': 'Maxsus belgilar',
-   'Source code': 'Manba kodi',
-   'Insert/Edit code sample': "Kod namunasini qo'shish / tahrirlash",
-   Language: 'Til',
-   'Code sample': 'Kod namunasi',
-   Color: 'Rang',
-   R: 'R',
-   G: 'G',
-   B: 'B',
-   'Left to right': "Chapdan o'ngga",
-   'Right to left': "O'ngdan chapga",
-   Emoticons: 'Hissiyot ikonkalari',
-   'Document properties': 'Hujjatning xususiyatlari',
-   Title: 'Nomi',
-   Keywords: "Kalit so'zlar",
-   Description: 'Tavsif',
-   Robots: 'Robotlar',
-   Author: 'Muallif',
-   Encoding: 'Kodlash',
-   Fullscreen: 'Butun ekran rejimi',
-   Action: 'Harakat',
-   Shortcut: 'Yorliq',
-   Help: 'Yordam',
-   Address: 'Manzil',
-   'Focus to menubar': "Menubarga e'tibor qaratish",
-   'Focus to toolbar': "Vositalar paneliga e'tibor qaratish",
-   'Focus to element path': "Elementlar manziliga e'tibor qaratish",
-   'Focus to contextual toolbar':
-      "Kontekstli vositalar paneliga e'tibor qaratish",
-   'Insert link (if link plugin activated)':
-      "Havolani qo'shish (havola plagini o'rnatilgan bo'lsa)",
-   'Save (if save plugin activated)':
-      "Saqlash (saqlash plagini o'rnatilgan bo'lsa)",
-   'Find (if searchreplace plugin activated)':
-      "Qidirish (qidirish plagini o'rnatilgan bo'lsa)",
-   'Plugins installed ({0}):': "O'rnatilgan plaginlar ({0})",
-   'Premium plugins:': 'Premium plaginlar:',
-   'Learn more...': "Batafsil ma'lumot...",
-   'You are using {0}': 'Siz {0} ishlatmoqdasiz',
-   Plugins: 'Plaginlar',
-   'Handy Shortcuts': 'Foydalanadigan yorliqlar',
-   'Horizontal line': 'Gorizontal chiziq',
-   'Insert/edit image': "Rasmni qo'shish / tahrirlash",
-   'Image description': 'Rasm tavsifi',
-   Source: 'Manba',
-   Dimensions: "O'lchamlari",
-   'Constrain proportions': 'Nisbatlarni cheklash',
-   General: 'Umumiy',
-   Advanced: "Ilg'or",
-   Style: 'Uslub',
-   'Vertical space': "Vertikal o'lchov",
-   'Horizontal space': "Gorizontal o'lchov",
-   Border: 'Chegara',
-   'Insert image': "Rasm qo'shish",
-   Image: 'Rasm',
-   'Image list': "Rasmlar ro'yhati",
-   'Rotate counterclockwise': "Soatga qarshi yo'nalishda aylantirish",
-   'Rotate clockwise': "Soat yo'nalishda aylantirish",
-   'Flip vertically': "Vertikal o'girish",
-   'Flip horizontally': "Gorizontal o'girish",
-   'Edit image': 'Rasmni tahrirlash',
-   'Image options': 'Rasm imkoniyatlari',
-   'Zoom in': 'Yaqinlashtirish',
-   'Zoom out': 'Uzoqlashtirish',
-   Crop: 'Kesib olish',
-   Resize: "O'lchamini o'zgartirish",
-   Orientation: 'Orientatsiya',
-   Brightness: 'Yorqinligi',
-   Sharpen: 'Keskinligi',
-   Contrast: 'Ravshanligi',
-   'Color levels': 'Rang sathi',
-   Gamma: 'Gamma',
-   Invert: "Ranglarni ag'darish",
-   Apply: "Qo'llash",
-   Back: 'Ortga qaytish',
-   'Insert date/time': "Kun / vaqtni qo'shish",
-   'Date/time': 'Kun/vaqt',
-   'Insert link': "Havola qo'shish",
-   'Insert/edit link': "Havola qo'shish / tahrirlash",
-   'Text to display': "Ko'rsatiladigan matn",
-   Url: 'URL',
-   Target: 'Nishon',
-   None: 'Hech bir',
-   'New window': 'Yangi oyna',
-   'Remove link': 'Havolani olib tashlash',
-   Anchors: 'Langarlar',
-   Link: 'Havola',
-   'Paste or type a link': 'Havolani joylashtirish yoki kiritish',
-   'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?':
-      'Siz kiritgan URL elektron pochta manziliga oxshayapti. "mailto:" prefiksi qo\'shilsinmi?',
-   'The URL you entered seems to be an external link. Do you want to add the required http:// prefix?':
-      'Siz kiritgan URL tashqi havolaga oxshayapti. "http://" prefiksi qo\'shilsinmi?',
-   'Link list': "Havolalar ro'yhati",
-   'Insert video': "Video qo'shish",
-   'Insert/edit video': "Videoni qo'shish / tahrirlash",
-   'Insert/edit media': "Media qo'shish / tahrirlash",
-   'Alternative source': 'Muqobil manba',
-   Poster: 'Poster',
-   'Paste your embed code below:': 'Kodni quyiga joylashtiring:',
-   Embed: 'Ichiga olgan',
-   Media: 'Media',
-   'Nonbreaking space': "Buzilmas bo'sh joy",
-   'Page break': 'Yangi bet',
-   'Paste as text': "Tekst qo'shish",
-   Preview: "Tahrirni avvaldan ko'rish",
-   Print: 'Chop etish',
-   Save: 'Saqlash',
-   Find: 'Qidirish',
-   'Replace with': 'bilan almashtirish',
-   Replace: 'Almashtirish',
-   'Replace all': 'Barchasini almashtirish',
-   Prev: 'Avvalgisi',
-   Next: 'Keyingisi',
-   'Find and replace': 'Topib almashtirish',
-   'Could not find the specified string.': 'Belgilangan satr topilmadi.',
-   'Match case': "O'xshashliklar",
-   'Whole words': "Butun so'z",
-   Spellcheck: 'Imloni tekshirish',
-   Ignore: "E'tiborsiz qoldirish",
-   'Ignore all': "Barchasini e'tiborsiz qoldirish",
-   Finish: 'Tugatish',
-   'Add to Dictionary': "Lug'atga qo'shish",
-   'Insert table': "Jadvalni qo'shish",
-   'Table properties': 'Jadval xususiyatlari',
-   'Delete table': "Jadvalni o'chirib tashlash",
-   Cell: 'Katak',
-   Row: 'Satr',
-   Column: 'Ustun',
-   'Cell properties': 'Katak hususiyatlari',
-   'Merge cells': 'Kataklarni birlashtirish',
-   'Split cell': "Kataklarni bo'lish",
-   'Insert row before': "Yuqorisiga satr qo'shish",
-   'Insert row after': "Ketidan satr qo'shish",
-   'Delete row': 'Satrni olib tashlash',
-   'Row properties': 'Satr hususiyatlari',
-   'Cut row': 'Satrni kesib olish',
-   'Copy row': "Satrdan nusxa ko'chirish",
-   'Paste row before': 'Yuqorisiga satrni joylashtirish',
-   'Paste row after': 'Ketidan satrni joylashtirish',
-   'Insert column before': "Ustunni oldi tomoniga qo'shish",
-   'Insert column after': "Ustunni ketidan qo'shish",
-   'Delete column': 'Ustunni olib tashlash',
-   Cols: 'Ustunlar',
-   Rows: 'Satrlar',
-   Width: 'Kengligi',
-   Height: 'Balandligi',
-   'Cell spacing': 'Kataklar orasi',
-   'Cell padding': "Kataklar chegarasidan bo'sh joy",
-   Caption: 'Taglavha',
-   Left: 'Chapga',
-   Center: 'Markazga',
-   Right: "O'ngga",
-   'Cell type': 'Katak turi',
-   Scope: 'Muhit',
-   Alignment: 'Tekislash',
-   'H Align': 'Gorizontal tekislash',
-   'V Align': 'Vertikal tekislash',
-   Top: 'Yuqoriga',
-   Middle: 'Markaziga',
-   Bottom: 'Tagiga',
-   'Header cell': 'Sarlavha katagi',
-   'Row group': 'Satrlar guruhi',
-   'Column group': 'Ustunlar guruhi',
-   'Row type': 'Satr turi',
-   Header: 'Sarlavha',
-   Body: 'Tanasi',
-   Footer: 'Tag qismi',
-   'Border color': 'Chegara rangi',
-   'Insert template': "Andozani qo'shish",
-   Templates: 'Andozalar',
-   Template: 'Andoza',
-   'Text color': 'Matn rangi',
-   'Background color': 'Orqa fon rangi',
-   'Custom...': "O'zgacha...",
-   'Custom color': "O'zgacha rang",
-   'No color': 'Rangsiz',
-   'Table of Contents': 'Mundarija',
-   'Show blocks': "Bloklarni ko'rsatish",
-   'Show invisible characters': "Ko'rinmas belgilarni ko'rsatish",
-   'Words: {0}': "So'zlar soni: {0}",
-   '{0} words': '{0} so`z',
-   File: 'Fayl',
-   Edit: 'Tahrirlash',
-   Insert: "Qo'shish",
-   View: "Ko'rish",
-   Format: 'Shakllar',
-   Table: 'Jadval',
-   Tools: 'Vositalar',
-   'Powered by {0}': '{0} bilan ishlaydi',
-   'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help':
-      'Murakkab matn maydoni. Menyu uchun ALT-F9 tugmalarini bosing. Vositalar paneli uchun ALT-F10 tugmasini bosing. Yordamni chaqirish uchun ALT-0-ni bosing',
-};
-const ru = {
-   Redo: '\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c',
-   Undo: '\u0412\u0435\u0440\u043d\u0443\u0442\u044c',
-   Cut: '\u0412\u044b\u0440\u0435\u0437\u0430\u0442\u044c',
-   Copy: '\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c',
-   Paste: '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c',
-   'Select all':
-      '\u0412\u044b\u0434\u0435\u043b\u0438\u0442\u044c \u0432\u0441\u0435',
-   'New document':
-      '\u041d\u043e\u0432\u044b\u0439 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442',
-   Ok: '\u041e\u043a',
-   Cancel: '\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c',
-   'Visual aids':
-      '\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u043a\u043e\u043d\u0442\u0443\u0440\u044b',
-   Bold: '\u041f\u043e\u043b\u0443\u0436\u0438\u0440\u043d\u044b\u0439',
-   Italic: '\u041a\u0443\u0440\u0441\u0438\u0432',
-   Underline:
-      '\u041f\u043e\u0434\u0447\u0435\u0440\u043a\u043d\u0443\u0442\u044b\u0439',
-   Strikethrough:
-      '\u0417\u0430\u0447\u0435\u0440\u043a\u043d\u0443\u0442\u044b\u0439',
-   Superscript:
-      '\u0412\u0435\u0440\u0445\u043d\u0438\u0439 \u0438\u043d\u0434\u0435\u043a\u0441',
-   Subscript:
-      '\u041d\u0438\u0436\u043d\u0438\u0439 \u0438\u043d\u0434\u0435\u043a\u0441',
-   'Clear formatting':
-      '\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0444\u043e\u0440\u043c\u0430\u0442',
-   'Align left':
-      '\u041f\u043e \u043b\u0435\u0432\u043e\u043c\u0443 \u043a\u0440\u0430\u044e',
-   'Align center': '\u041f\u043e \u0446\u0435\u043d\u0442\u0440\u0443',
-   'Align right':
-      '\u041f\u043e \u043f\u0440\u0430\u0432\u043e\u043c\u0443 \u043a\u0440\u0430\u044e',
-   Justify: '\u041f\u043e \u0448\u0438\u0440\u0438\u043d\u0435',
-   'Bullet list':
-      '\u041c\u0430\u0440\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0441\u043f\u0438\u0441\u043e\u043a',
-   'Numbered list':
-      '\u041d\u0443\u043c\u0435\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0441\u043f\u0438\u0441\u043e\u043a',
-   'Decrease indent':
-      '\u0423\u043c\u0435\u043d\u044c\u0448\u0438\u0442\u044c \u043e\u0442\u0441\u0442\u0443\u043f',
-   'Increase indent':
-      '\u0423\u0432\u0435\u043b\u0438\u0447\u0438\u0442\u044c \u043e\u0442\u0441\u0442\u0443\u043f',
-   Close: '\u0417\u0430\u043a\u0440\u044b\u0442\u044c',
-   Formats: '\u0424\u043e\u0440\u043c\u0430\u0442',
-   "Your browser doesn't support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.":
-      '\u0412\u0430\u0448 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u043d\u0435 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u043f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u043a \u0431\u0443\u0444\u0435\u0440\u0443 \u043e\u0431\u043c\u0435\u043d\u0430. \u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u044f \u043a\u043b\u0430\u0432\u0438\u0448: Ctrl+X/C/V.',
-   Headers: '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043a\u0438',
-   'Header 1': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 1',
-   'Header 2': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 2',
-   'Header 3': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 3',
-   'Header 4': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 4',
-   'Header 5': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 5',
-   'Header 6': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 6',
-   Headings: '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043a\u0438',
-   'Heading 1': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 1',
-   'Heading 2': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 2',
-   'Heading 3': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 3',
-   'Heading 4': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 4',
-   'Heading 5': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 5',
-   'Heading 6': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a 6',
-   Preformatted:
-      '\u041f\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0444\u043e\u0440\u043c\u0430\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435',
-   Div: '\u0411\u043b\u043e\u043a',
-   Pre: '\u041f\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0444\u043e\u0440\u043c\u0430\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435',
-   Code: '\u041a\u043e\u0434',
-   Paragraph: '\u041f\u0430\u0440\u0430\u0433\u0440\u0430\u0444',
-   Blockquote: '\u0426\u0438\u0442\u0430\u0442\u0430',
-   Inline: '\u0421\u0442\u0440\u043e\u0447\u043d\u044b\u0435',
-   Blocks: '\u0411\u043b\u043e\u043a\u0438',
-   'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.':
-      '\u0412\u0441\u0442\u0430\u0432\u043a\u0430 \u043e\u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0432 \u0432\u0438\u0434\u0435 \u043f\u0440\u043e\u0441\u0442\u043e\u0433\u043e \u0442\u0435\u043a\u0441\u0442\u0430, \u043f\u043e\u043a\u0430 \u043d\u0435 \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u0443\u044e \u043e\u043f\u0446\u0438\u044e.',
-   'Font Family': '\u0428\u0440\u0438\u0444\u0442',
-   'Font Sizes':
-      '\u0420\u0430\u0437\u043c\u0435\u0440 \u0448\u0440\u0438\u0444\u0442\u0430',
-   Class: '\u041a\u043b\u0430\u0441\u0441',
-   'Browse for an image':
-      '\u0412\u044b\u0431\u043e\u0440 \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f',
-   OR: '\u0418\u041b\u0418',
-   'Drop an image here':
-      '\u041f\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435 \u0441\u044e\u0434\u0430',
-   Upload: '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c',
-   Block: '\u0411\u043b\u043e\u043a',
-   Align: '\u0412\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u0435',
-   Default:
-      '\u0421\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439',
-   Circle: '\u041e\u043a\u0440\u0443\u0436\u043d\u043e\u0441\u0442\u0438',
-   Disc: '\u041a\u0440\u0443\u0433\u0438',
-   Square: '\u041a\u0432\u0430\u0434\u0440\u0430\u0442\u044b',
-   'Lower Alpha':
-      '\u0421\u0442\u0440\u043e\u0447\u043d\u044b\u0435 \u043b\u0430\u0442\u0438\u043d\u0441\u043a\u0438\u0435 \u0431\u0443\u043a\u0432\u044b',
-   'Lower Greek':
-      '\u0421\u0442\u0440\u043e\u0447\u043d\u044b\u0435 \u0433\u0440\u0435\u0447\u0435\u0441\u043a\u0438\u0435 \u0431\u0443\u043a\u0432\u044b',
-   'Lower Roman':
-      '\u0421\u0442\u0440\u043e\u0447\u043d\u044b\u0435 \u0440\u0438\u043c\u0441\u043a\u0438\u0435 \u0446\u0438\u0444\u0440\u044b',
-   'Upper Alpha':
-      '\u0417\u0430\u0433\u043b\u0430\u0432\u043d\u044b\u0435 \u043b\u0430\u0442\u0438\u043d\u0441\u043a\u0438\u0435 \u0431\u0443\u043a\u0432\u044b',
-   'Upper Roman':
-      '\u0417\u0430\u0433\u043b\u0430\u0432\u043d\u044b\u0435 \u0440\u0438\u043c\u0441\u043a\u0438\u0435 \u0446\u0438\u0444\u0440\u044b',
-   Anchor: '\u042f\u043a\u043e\u0440\u044c',
-   Name: '\u0418\u043c\u044f',
-   Id: 'Id',
-   'Id should start with a letter, followed only by letters, numbers, dashes, dots, colons or underscores.':
-      'Id \u0434\u043e\u043b\u0436\u0435\u043d \u043d\u0430\u0447\u0438\u043d\u0430\u0442\u044c\u0441\u044f \u0441 \u0431\u0443\u043a\u0432\u044b, \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0442\u044c\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0441 \u0431\u0443\u043a\u0432\u044b, \u0446\u0438\u0444\u0440\u044b, \u0442\u0438\u0440\u0435, \u0442\u043e\u0447\u043a\u0438, \u0434\u0432\u043e\u0435\u0442\u043e\u0447\u0438\u044f \u0438\u043b\u0438 \u043f\u043e\u0434\u0447\u0435\u0440\u043a\u0438\u0432\u0430\u043d\u0438\u044f.',
-   'You have unsaved changes are you sure you want to navigate away?':
-      '\u0423 \u0432\u0430\u0441 \u0435\u0441\u0442\u044c \u043d\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043d\u044b\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f. \u0412\u044b \u0443\u0432\u0435\u0440\u0435\u043d\u044b, \u0447\u0442\u043e \u0445\u043e\u0442\u0438\u0442\u0435 \u0443\u0439\u0442\u0438?',
-   'Restore last draft':
-      '\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043f\u0440\u043e\u0435\u043a\u0442\u0430',
-   'Special character':
-      '\u0421\u043f\u0435\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0441\u0438\u043c\u0432\u043e\u043b\u044b',
-   'Source code':
-      '\u0418\u0441\u0445\u043e\u0434\u043d\u044b\u0439 \u043a\u043e\u0434',
-   'Insert/Edit code sample':
-      '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c/\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043f\u0440\u0438\u043c\u0435\u0440 \u043a\u043e\u0434\u0430',
-   Language: '\u042f\u0437\u044b\u043a',
-   'Code sample':
-      '\u041f\u0440\u0438\u043c\u0435\u0440 \u043a\u043e\u0434\u0430',
-   Color: '\u0426\u0432\u0435\u0442',
-   R: 'R',
-   G: 'G',
-   B: 'B',
-   'Left to right':
-      '\u041d\u0430\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043b\u0435\u0432\u0430 \u043d\u0430\u043f\u0440\u0430\u0432\u043e',
-   'Right to left':
-      '\u041d\u0430\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043f\u0440\u0430\u0432\u0430 \u043d\u0430\u043b\u0435\u0432\u043e',
-   Emoticons:
-      '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0441\u043c\u0430\u0439\u043b',
-   'Document properties':
-      '\u0421\u0432\u043e\u0439\u0441\u0442\u0432\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430',
-   Title: '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a',
-   Keywords:
-      '\u041a\u043b\u044e\u0447\u0438\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430',
-   Description: '\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435',
-   Robots: '\u0420\u043e\u0431\u043e\u0442\u044b',
-   Author: '\u0410\u0432\u0442\u043e\u0440',
-   Encoding: '\u041a\u043e\u0434\u0438\u0440\u043e\u0432\u043a\u0430',
-   Fullscreen:
-      '\u041f\u043e\u043b\u043d\u043e\u044d\u043a\u0440\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c',
-   Action: '\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435',
-   Shortcut: '\u042f\u0440\u043b\u044b\u043a',
-   Help: '\u041f\u043e\u043c\u043e\u0449\u044c',
-   Address: '\u0410\u0434\u0440\u0435\u0441',
-   'Focus to menubar':
-      '\u0424\u043e\u043a\u0443\u0441 \u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u0438 \u043c\u0435\u043d\u044e',
-   'Focus to toolbar':
-      '\u0424\u043e\u043a\u0443\u0441 \u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432',
-   'Focus to element path':
-      '\u0424\u043e\u043a\u0443\u0441 \u043d\u0430 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u0435 \u043f\u0443\u0442\u0438',
-   'Focus to contextual toolbar':
-      '\u0424\u043e\u043a\u0443\u0441 \u043d\u0430 \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432',
-   'Insert link (if link plugin activated)':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443 (\u0435\u0441\u043b\u0438 \u043f\u043b\u0430\u0433\u0438\u043d link \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d)',
-   'Save (if save plugin activated)':
-      '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c (\u0435\u0441\u043b\u0438 \u043f\u043b\u0430\u0433\u0438\u043d save \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d)',
-   'Find (if searchreplace plugin activated)':
-      '\u041d\u0430\u0439\u0442\u0438 (\u0435\u0441\u043b\u0438 \u043f\u043b\u0430\u0433\u0438\u043d searchreplace \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d)',
-   'Plugins installed ({0}):':
-      '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044b\u0435 \u043f\u043b\u0430\u0433\u0438\u043d\u044b ({0}):',
-   'Premium plugins:':
-      '\u041f\u0440\u0435\u043c\u0438\u0443\u043c \u043f\u043b\u0430\u0433\u0438\u043d\u044b:',
-   'Learn more...':
-      '\u0423\u0437\u043d\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435...',
-   'You are using {0}':
-      '\u0412\u044b \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0435 {0}',
-   Plugins: '\u041f\u043b\u0430\u0433\u0438\u043d\u044b',
-   'Handy Shortcuts':
-      '\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438',
-   'Horizontal line':
-      '\u0413\u043e\u0440\u0438\u0437\u043e\u043d\u0442\u0430\u043b\u044c\u043d\u0430\u044f \u043b\u0438\u043d\u0438\u044f',
-   'Insert/edit image':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c/\u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435',
-   'Image description':
-      '\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f',
-   Source: '\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a',
-   Dimensions: '\u0420\u0430\u0437\u043c\u0435\u0440',
-   'Constrain proportions':
-      '\u0421\u043e\u0445\u0440\u0430\u043d\u044f\u0442\u044c \u043f\u0440\u043e\u043f\u043e\u0440\u0446\u0438\u0438',
-   General: '\u041e\u0431\u0449\u0435\u0435',
-   Advanced:
-      '\u0420\u0430\u0441\u0448\u0438\u0440\u0435\u043d\u043d\u044b\u0435',
-   Style: '\u0421\u0442\u0438\u043b\u044c',
-   'Vertical space':
-      '\u0412\u0435\u0440\u0442\u0438\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b',
-   'Horizontal space':
-      '\u0413\u043e\u0440\u0438\u0437\u043e\u043d\u0442\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b',
-   Border: '\u0420\u0430\u043c\u043a\u0430',
-   'Insert image':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435',
-   Image: '\u0418\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f',
-   'Image list':
-      '\u0421\u043f\u0438\u0441\u043e\u043a \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0439',
-   'Rotate counterclockwise':
-      '\u041f\u043e\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u043f\u0440\u043e\u0442\u0438\u0432 \u0447\u0430\u0441\u043e\u0432\u043e\u0439 \u0441\u0442\u0440\u0435\u043b\u043a\u0438',
-   'Rotate clockwise':
-      '\u041f\u043e\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u043f\u043e \u0447\u0430\u0441\u043e\u0432\u043e\u0439 \u0441\u0442\u0440\u0435\u043b\u043a\u0435',
-   'Flip vertically':
-      '\u041e\u0442\u0440\u0430\u0437\u0438\u0442\u044c \u043f\u043e \u0432\u0435\u0440\u0442\u0438\u043a\u0430\u043b\u0438',
-   'Flip horizontally':
-      '\u041e\u0442\u0440\u0430\u0437\u0438\u0442\u044c \u043f\u043e \u0433\u043e\u0440\u0438\u0437\u043e\u043d\u0442\u0430\u043b\u0438',
-   'Edit image':
-      '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435',
-   'Image options':
-      '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f',
-   'Zoom in': '\u041f\u0440\u0438\u0431\u043b\u0438\u0437\u0438\u0442\u044c',
-   'Zoom out': '\u041e\u0442\u0434\u0430\u043b\u0438\u0442\u044c',
-   Crop: '\u041e\u0431\u0440\u0435\u0437\u0430\u0442\u044c',
-   Resize:
-      '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0440\u0430\u0437\u043c\u0435\u0440',
-   Orientation: '\u041e\u0440\u0438\u0435\u043d\u0442\u0430\u0446\u0438\u044f',
-   Brightness: '\u042f\u0440\u043a\u043e\u0441\u0442\u044c',
-   Sharpen: '\u0427\u0435\u0442\u043a\u043e\u0441\u0442\u044c',
-   Contrast: '\u041a\u043e\u043d\u0442\u0440\u0430\u0441\u0442',
-   'Color levels':
-      '\u0426\u0432\u0435\u0442\u043e\u0432\u044b\u0435 \u0443\u0440\u043e\u0432\u043d\u0438',
-   Gamma: '\u0413\u0430\u043c\u043c\u0430',
-   Invert: '\u0418\u043d\u0432\u0435\u0440\u0441\u0438\u044f',
-   Apply: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
-   Back: '\u041d\u0430\u0437\u0430\u0434',
-   'Insert date/time':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0434\u0430\u0442\u0443/\u0432\u0440\u0435\u043c\u044f',
-   'Date/time': '\u0414\u0430\u0442\u0430/\u0432\u0440\u0435\u043c\u044f',
-   'Insert link':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443',
-   'Insert/edit link':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c/\u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443',
-   'Text to display':
-      '\u041e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u043c\u044b\u0439 \u0442\u0435\u043a\u0441\u0442',
-   Url: '\u0410\u0434\u0440\u0435\u0441 \u0441\u0441\u044b\u043b\u043a\u0438',
-   Target:
-      '\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443',
-   None: '\u041d\u0435\u0442',
-   'New window':
-      '\u0412 \u043d\u043e\u0432\u043e\u043c \u043e\u043a\u043d\u0435',
-   'Remove link':
-      '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443',
-   Anchors: '\u042f\u043a\u043e\u0440\u044f',
-   Link: '\u0421\u0441\u044b\u043b\u043a\u0430',
-   'Paste or type a link':
-      '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043b\u0438 \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443',
-   'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?':
-      '\u0412\u0432\u0435\u0434\u0451\u043d\u043d\u044b\u0439 URL \u044f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u043c \u0430\u0434\u0440\u0435\u0441\u043e\u043c \u044d\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u043e\u0439 \u043f\u043e\u0447\u0442\u044b. \u0412\u044b \u0436\u0435\u043b\u0430\u0435\u0442\u0435 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u0440\u0435\u0444\u0438\u043a\u0441 \u00abmailto:\u00bb?',
-   'The URL you entered seems to be an external link. Do you want to add the required http:// prefix?':
-      '\u0412\u0432\u0435\u0434\u0451\u043d\u043d\u044b\u0439 URL \u044f\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0432\u043d\u0435\u0448\u043d\u0435\u0439 \u0441\u0441\u044b\u043b\u043a\u043e\u0439. \u0412\u044b \u0436\u0435\u043b\u0430\u0435\u0442\u0435 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u0440\u0435\u0444\u0438\u043a\u0441 \u00abhttp://\u00bb?',
-   'Link list':
-      '\u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0441\u044b\u043b\u043e\u043a',
-   'Insert video':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0432\u0438\u0434\u0435\u043e',
-   'Insert/edit video':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c/\u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0438\u0434\u0435\u043e',
-   'Insert/edit media':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c/\u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0438\u0434\u0435\u043e',
-   'Alternative source':
-      '\u0410\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a',
-   Poster: '\u0418\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435',
-   'Paste your embed code below:':
-      '\u0412\u0441\u0442\u0430\u0432\u044c\u0442\u0435 \u0432\u0430\u0448 \u043a\u043e\u0434 \u043d\u0438\u0436\u0435:',
-   Embed: '\u041a\u043e\u0434 \u0434\u043b\u044f \u0432\u0441\u0442\u0430\u0432\u043a\u0438',
-   Media: '\u0412\u0438\u0434\u0435\u043e',
-   'Nonbreaking space':
-      '\u041d\u0435\u0440\u0430\u0437\u0440\u044b\u0432\u043d\u044b\u0439 \u043f\u0440\u043e\u0431\u0435\u043b',
-   'Page break':
-      '\u0420\u0430\u0437\u0440\u044b\u0432 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u044b',
-   'Paste as text':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043a\u0430\u043a \u0442\u0435\u043a\u0441\u0442',
-   Preview:
-      '\u041f\u0440\u0435\u0434\u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440',
-   Print: '\u041f\u0435\u0447\u0430\u0442\u044c',
-   Save: '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c',
-   Find: '\u041d\u0430\u0439\u0442\u0438',
-   'Replace with':
-      '\u0417\u0430\u043c\u0435\u043d\u0438\u0442\u044c \u043d\u0430',
-   Replace: '\u0417\u0430\u043c\u0435\u043d\u0438\u0442\u044c',
-   'Replace all':
-      '\u0417\u0430\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0441\u0435',
-   Prev: '\u0412\u0432\u0435\u0440\u0445',
-   Next: '\u0412\u043d\u0438\u0437',
-   'Find and replace':
-      '\u041f\u043e\u0438\u0441\u043a \u0438 \u0437\u0430\u043c\u0435\u043d\u0430',
-   'Could not find the specified string.':
-      '\u0417\u0430\u0434\u0430\u043d\u043d\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430',
-   'Match case':
-      '\u0423\u0447\u0438\u0442\u044b\u0432\u0430\u0442\u044c \u0440\u0435\u0433\u0438\u0441\u0442\u0440',
-   'Whole words':
-      '\u0421\u043b\u043e\u0432\u043e \u0446\u0435\u043b\u0438\u043a\u043e\u043c',
-   Spellcheck:
-      '\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043f\u0440\u0430\u0432\u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435',
-   Ignore:
-      '\u0418\u0433\u043d\u043e\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c',
-   'Ignore all':
-      '\u0418\u0433\u043d\u043e\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432\u0441\u0435',
-   Finish: '\u0417\u0430\u043a\u043e\u043d\u0447\u0438\u0442\u044c',
-   'Add to Dictionary':
-      '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0441\u043b\u043e\u0432\u0430\u0440\u044c',
-   'Insert table':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0442\u0430\u0431\u043b\u0438\u0446\u0443',
-   'Table properties':
-      '\u0421\u0432\u043e\u0439\u0441\u0442\u0432\u0430 \u0442\u0430\u0431\u043b\u0438\u0446\u044b',
-   'Delete table':
-      '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0442\u0430\u0431\u043b\u0438\u0446\u0443',
-   Cell: '\u042f\u0447\u0435\u0439\u043a\u0430',
-   Row: '\u0421\u0442\u0440\u043e\u043a\u0430',
-   Column: '\u0421\u0442\u043e\u043b\u0431\u0435\u0446',
-   'Cell properties':
-      '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b \u044f\u0447\u0435\u0439\u043a\u0438',
-   'Merge cells':
-      '\u041e\u0431\u044a\u0435\u0434\u0438\u043d\u0438\u0442\u044c \u044f\u0447\u0435\u0439\u043a\u0438',
-   'Split cell':
-      '\u0420\u0430\u0437\u0431\u0438\u0442\u044c \u044f\u0447\u0435\u0439\u043a\u0443',
-   'Insert row before':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043f\u0443\u0441\u0442\u0443\u044e \u0441\u0442\u0440\u043e\u043a\u0443 \u0441\u0432\u0435\u0440\u0445\u0443',
-   'Insert row after':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043f\u0443\u0441\u0442\u0443\u044e \u0441\u0442\u0440\u043e\u043a\u0443 \u0441\u043d\u0438\u0437\u0443',
-   'Delete row':
-      '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443',
-   'Row properties':
-      '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b \u0441\u0442\u0440\u043e\u043a\u0438',
-   'Cut row':
-      '\u0412\u044b\u0440\u0435\u0437\u0430\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443',
-   'Copy row':
-      '\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443',
-   'Paste row before':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443 \u0441\u0432\u0435\u0440\u0445\u0443',
-   'Paste row after':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443 \u0441\u043d\u0438\u0437\u0443',
-   'Insert column before':
-      '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u043e\u043b\u0431\u0435\u0446 \u0441\u043b\u0435\u0432\u0430',
-   'Insert column after':
-      '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u043e\u043b\u0431\u0435\u0446 \u0441\u043f\u0440\u0430\u0432\u0430',
-   'Delete column':
-      '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0441\u0442\u043e\u043b\u0431\u0435\u0446',
-   Cols: '\u0421\u0442\u043e\u043b\u0431\u0446\u044b',
-   Rows: '\u0421\u0442\u0440\u043e\u043a\u0438',
-   Width: '\u0428\u0438\u0440\u0438\u043d\u0430',
-   Height: '\u0412\u044b\u0441\u043e\u0442\u0430',
-   'Cell spacing':
-      '\u0412\u043d\u0435\u0448\u043d\u0438\u0439 \u043e\u0442\u0441\u0442\u0443\u043f',
-   'Cell padding':
-      '\u0412\u043d\u0443\u0442\u0440\u0435\u043d\u043d\u0438\u0439 \u043e\u0442\u0441\u0442\u0443\u043f',
-   Caption: '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a',
-   Left: '\u041f\u043e \u043b\u0435\u0432\u043e\u043c\u0443 \u043a\u0440\u0430\u044e',
-   Center: '\u041f\u043e \u0446\u0435\u043d\u0442\u0440\u0443',
-   Right: '\u041f\u043e \u043f\u0440\u0430\u0432\u043e\u043c\u0443 \u043a\u0440\u0430\u044e',
-   'Cell type': '\u0422\u0438\u043f \u044f\u0447\u0435\u0439\u043a\u0438',
-   Scope: 'Scope',
-   Alignment:
-      '\u0412\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u0435',
-   'H Align':
-      '\u0413\u043e\u0440\u0438\u0437\u043e\u043d\u0442\u0430\u043b\u044c\u043d\u043e\u0435 \u0432\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u0435',
-   'V Align':
-      '\u0412\u0435\u0440\u0442\u0438\u043a\u0430\u043b\u044c\u043d\u043e\u0435 \u0432\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u0435',
-   Top: '\u041f\u043e \u0432\u0435\u0440\u0445\u0443',
-   Middle: '\u041f\u043e \u0441\u0435\u0440\u0435\u0434\u0438\u043d\u0435',
-   Bottom: '\u041f\u043e \u043d\u0438\u0437\u0443',
-   'Header cell': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a',
-   'Row group':
-      '\u0413\u0440\u0443\u043f\u043f\u0430 \u0441\u0442\u0440\u043e\u043a',
-   'Column group':
-      '\u0413\u0440\u0443\u043f\u043f\u0430 \u043a\u043e\u043b\u043e\u043d\u043e\u043a',
-   'Row type': '\u0422\u0438\u043f \u0441\u0442\u0440\u043e\u043a\u0438',
-   Header: '\u0428\u0430\u043f\u043a\u0430',
-   Body: '\u0422\u0435\u043b\u043e',
-   Footer: '\u041d\u0438\u0437',
-   'Border color': '\u0426\u0432\u0435\u0442 \u0440\u0430\u043c\u043a\u0438',
-   'Insert template':
-      '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0448\u0430\u0431\u043b\u043e\u043d',
-   Templates: '\u0428\u0430\u0431\u043b\u043e\u043d\u044b',
-   Template: '\u0428\u0430\u0431\u043b\u043e\u043d',
-   'Text color':
-      '\u0426\u0432\u0435\u0442 \u0442\u0435\u043a\u0441\u0442\u0430',
-   'Background color': '\u0426\u0432\u0435\u0442 \u0444\u043e\u043d\u0430',
-   'Custom...': '\u0412\u044b\u0431\u0440\u0430\u0442\u044c\u2026',
-   'Custom color':
-      '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u0441\u043a\u0438\u0439 \u0446\u0432\u0435\u0442',
-   'No color': '\u0411\u0435\u0437 \u0446\u0432\u0435\u0442\u0430',
-   'Table of Contents':
-      '\u0421\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435',
-   'Show blocks':
-      '\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u0431\u043b\u043e\u043a\u0438',
-   'Show invisible characters':
-      '\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u043d\u0435\u0432\u0438\u0434\u0438\u043c\u044b\u0435 \u0441\u0438\u043c\u0432\u043e\u043b\u044b',
-   'Words: {0}':
-      '\u041a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e \u0441\u043b\u043e\u0432: {0}',
-   '{0} words': '\u0441\u043b\u043e\u0432: {0}',
-   File: '\u0424\u0430\u0439\u043b',
-   Edit: '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c',
-   Insert: '\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044c',
-   View: '\u0412\u0438\u0434',
-   Format: '\u0424\u043e\u0440\u043c\u0430\u0442',
-   Table: '\u0422\u0430\u0431\u043b\u0438\u0446\u0430',
-   Tools: '\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b',
-   'Powered by {0}':
-      '\u041f\u0440\u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0435 {0}',
-   'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help':
-      '\u0422\u0435\u043a\u0441\u0442\u043e\u0432\u043e\u0435 \u043f\u043e\u043b\u0435. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 ALT-F9 \u0447\u0442\u043e\u0431\u044b \u0432\u044b\u0437\u0432\u0430\u0442\u044c \u043c\u0435\u043d\u044e, ALT-F10 \u043f\u0430\u043d\u0435\u043b\u044c \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432, ALT-0 \u0434\u043b\u044f \u0432\u044b\u0437\u043e\u0432\u0430 \u043f\u043e\u043c\u043e\u0449\u0438.',
-};
-const en = {
-   Redo: 'Redo',
-   Undo: 'Undo',
-   Cut: 'Cut',
-   Copy: 'Copy',
-   Paste: 'Paste',
-   'Select all': 'Select all',
-   'New document': 'New document',
-   Ok: 'Ok',
-   Cancel: 'Cancel',
-   'Visual aids': 'Visual aids',
-   Bold: 'Bold',
-   Italic: 'Italic',
-   Underline: 'Underline',
-   Strikethrough: 'Strike-through',
-   Superscript: 'Superscript',
-   Subscript: 'Subscript',
-   'Clear formatting': 'Clear formatting',
-   'Align left': 'Align left',
-   'Align center': 'Align centre',
-   'Align right': 'Align right',
-   Justify: 'Justify',
-   'Bullet list': 'Bullet list',
-   'Numbered list': 'Numbered list',
-   'Decrease indent': 'Decrease indent',
-   'Increase indent': 'Increase indent',
-   Close: 'Close',
-   Formats: 'Formats',
-   "Your browser doesn't support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.":
-      "Your browser doesn't support direct access to the clipboard. Please use the Ctrl+X/C/V keyboard shortcuts instead.",
-   Headers: 'Headers',
-   'Header 1': 'Header 1',
-   'Header 2': 'Header 2',
-   'Header 3': 'Header 3',
-   'Header 4': 'Header 4',
-   'Header 5': 'Header 5',
-   'Header 6': 'Header 6',
-   Headings: 'Headings',
-   'Heading 1': 'Heading 1',
-   'Heading 2': 'Heading 2',
-   'Heading 3': 'Heading 3',
-   'Heading 4': 'Heading 4',
-   'Heading 5': 'Heading 5',
-   'Heading 6': 'Heading 6',
-   Preformatted: 'Preformatted',
-   Div: 'Div',
-   Pre: 'Pre',
-   Code: 'Code',
-   Paragraph: 'Paragraph',
-   Blockquote: 'Blockquote',
-   Inline: 'Inline',
-   Blocks: 'Blocks',
-   'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.':
-      'Paste is now in plain text mode. Contents will now be pasted as plain text until you toggle this option off.',
-   'Font Family': 'Font Family',
-   'Font Sizes': 'Font Sizes',
-   Class: 'Class',
-   'Browse for an image': 'Browse for an image',
-   OR: 'OR',
-   'Drop an image here': 'Drop an image here',
-   Upload: 'Upload',
-   Block: 'Block',
-   Align: 'Align',
-   Default: 'Default',
-   Circle: 'Circle',
-   Disc: 'Disc',
-   Square: 'Square',
-   'Lower Alpha': 'Lower Alpha',
-   'Lower Greek': 'Lower Greek',
-   'Lower Roman': 'Lower Roman',
-   'Upper Alpha': 'Upper Alpha',
-   'Upper Roman': 'Upper Roman',
-   Anchor: 'Anchor',
-   Name: 'Name',
-   Id: 'ID',
-   'Id should start with a letter, followed only by letters, numbers, dashes, dots, colons or underscores.':
-      'ID should start with a letter, followed only by letters, numbers, dashes, dots, colons or underscores.',
-   'You have unsaved changes are you sure you want to navigate away?':
-      'You have unsaved changes are you sure you want to navigate away?',
-   'Restore last draft': 'Restore last draft',
-   'Special character': 'Special character',
-   'Source code': 'Source code',
-   'Insert/Edit code sample': 'Insert/Edit code sample',
-   Language: 'Language',
-   'Code sample': 'Code sample',
-   Color: 'Colour',
-   R: 'R',
-   G: 'G',
-   B: 'B',
-   'Left to right': 'Left to right',
-   'Right to left': 'Right to left',
-   Emoticons: 'Emoticons',
-   'Document properties': 'Document properties',
-   Title: 'Title',
-   Keywords: 'Keywords',
-   Description: 'Description',
-   Robots: 'Robots',
-   Author: 'Author',
-   Encoding: 'Encoding',
-   Fullscreen: 'Full-screen',
-   Action: 'Action',
-   Shortcut: 'Shortcut',
-   Help: 'Help',
-   Address: 'Address',
-   'Focus to menubar': 'Focus to menubar',
-   'Focus to toolbar': 'Focus to toolbar',
-   'Focus to element path': 'Focus to element path',
-   'Focus to contextual toolbar': 'Focus to contextual toolbar',
-   'Insert link (if link plugin activated)':
-      'Insert link (if link plugin activated)',
-   'Save (if save plugin activated)': 'Save (if save plugin activated)',
-   'Find (if searchreplace plugin activated)':
-      'Find (if searchreplace plugin activated)',
-   'Plugins installed ({0}):': 'Plugins installed ({0}):',
-   'Premium plugins:': 'Premium plugins:',
-   'Learn more...': 'Learn more...',
-   'You are using {0}': 'You are using {0}',
-   Plugins: 'Plugins',
-   'Handy Shortcuts': 'Handy Shortcuts',
-   'Horizontal line': 'Horizontal line',
-   'Insert/edit image': 'Insert/edit image',
-   'Image description': 'Image description',
-   Source: 'Source',
-   Dimensions: 'Dimensions',
-   'Constrain proportions': 'Constrain proportions',
-   General: 'General',
-   Advanced: 'Advanced',
-   Style: 'Style',
-   'Vertical space': 'Vertical space',
-   'Horizontal space': 'Horizontal space',
-   Border: 'Border',
-   'Insert image': 'Insert image',
-   Image: 'Image',
-   'Image list': 'Image list',
-   'Rotate counterclockwise': 'Rotate counterclockwise',
-   'Rotate clockwise': 'Rotate clockwise',
-   'Flip vertically': 'Flip vertically',
-   'Flip horizontally': 'Flip horizontally',
-   'Edit image': 'Edit image',
-   'Image options': 'Image options',
-   'Zoom in': 'Zoom in',
-   'Zoom out': 'Zoom out',
-   Crop: 'Crop',
-   Resize: 'Resize',
-   Orientation: 'Orientation',
-   Brightness: 'Brightness',
-   Sharpen: 'Sharpen',
-   Contrast: 'Contrast',
-   'Color levels': 'Colour levels',
-   Gamma: 'Gamma',
-   Invert: 'Invert',
-   Apply: 'Apply',
-   Back: 'Back',
-   'Insert date/time': 'Insert date/time',
-   'Date/time': 'Date/time',
-   'Insert link': 'Insert link',
-   'Insert/edit link': 'Insert/edit link',
-   'Text to display': 'Text to display',
-   Url: 'URL',
-   Target: 'Target',
-   None: 'None',
-   'New window': 'New window',
-   'Remove link': 'Remove link',
-   Anchors: 'Anchors',
-   Link: 'Link',
-   'Paste or type a link': 'Paste or type a link',
-   'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?':
-      'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?',
-   'The URL you entered seems to be an external link. Do you want to add the required http:// prefix?':
-      'The URL you entered seems to be an external link. Do you want to add the required http:// prefix?',
-   'Link list': 'Link list',
-   'Insert video': 'Insert video',
-   'Insert/edit video': 'Insert/edit video',
-   'Insert/edit media': 'Insert/edit media',
-   'Alternative source': 'Alternative source',
-   Poster: 'Poster',
-   'Paste your embed code below:': 'Paste your embed code below:',
-   Embed: 'Embed',
-   Media: 'Media',
-   'Nonbreaking space': 'Non-breaking space',
-   'Page break': 'Page break',
-   'Paste as text': 'Paste as text',
-   Preview: 'Preview',
-   Print: 'Print',
-   Save: 'Save',
-   Find: 'Find',
-   'Replace with': 'Replace with',
-   Replace: 'Replace',
-   'Replace all': 'Replace all',
-   Prev: 'Prev',
-   Next: 'Next',
-   'Find and replace': 'Find and replace',
-   'Could not find the specified string.':
-      'Could not find the specified string.',
-   'Match case': 'Match case',
-   'Whole words': 'Whole words',
-   Spellcheck: 'Spell-check',
-   Ignore: 'Ignore',
-   'Ignore all': 'Ignore all',
-   Finish: 'Finish',
-   'Add to Dictionary': 'Add to Dictionary',
-   'Insert table': 'Insert table',
-   'Table properties': 'Table properties',
-   'Delete table': 'Delete table',
-   Cell: 'Cell',
-   Row: 'Row',
-   Column: 'Column',
-   'Cell properties': 'Cell properties',
-   'Merge cells': 'Merge cells',
-   'Split cell': 'Split cell',
-   'Insert row before': 'Insert row before',
-   'Insert row after': 'Insert row after',
-   'Delete row': 'Delete row',
-   'Row properties': 'Row properties',
-   'Cut row': 'Cut row',
-   'Copy row': 'Copy row',
-   'Paste row before': 'Paste row before',
-   'Paste row after': 'Paste row after',
-   'Insert column before': 'Insert column before',
-   'Insert column after': 'Insert column after',
-   'Delete column': 'Delete column',
-   Cols: 'Cols',
-   Rows: 'Rows',
-   Width: 'Width',
-   Height: 'Height',
-   'Cell spacing': 'Cell spacing',
-   'Cell padding': 'Cell padding',
-   Caption: 'Caption',
-   Left: 'Left',
-   Center: 'Centre',
-   Right: 'Right',
-   'Cell type': 'Cell type',
-   Scope: 'Scope',
-   Alignment: 'Alignment',
-   'H Align': 'H Align',
-   'V Align': 'V Align',
-   Top: 'Top',
-   Middle: 'Middle',
-   Bottom: 'Bottom',
-   'Header cell': 'Header cell',
-   'Row group': 'Row group',
-   'Column group': 'Column group',
-   'Row type': 'Row type',
-   Header: 'Header',
-   Body: 'Body',
-   Footer: 'Footer',
-   'Border color': 'Border colour',
-   'Insert template': 'Insert template',
-   Templates: 'Templates',
-   Template: 'Template',
-   'Text color': 'Text colour',
-   'Background color': 'Background colour',
-   'Custom...': 'Custom...',
-   'Custom color': 'Custom colour',
-   'No color': 'No colour',
-   'Table of Contents': 'Table of Contents',
-   'Show blocks': 'Show blocks',
-   'Show invisible characters': 'Show invisible characters',
-   'Words: {0}': 'Words: {0}',
-   '{0} words': '{0} words',
-   File: 'File',
-   Edit: 'Edit',
-   Insert: 'Insert',
-   View: 'View',
-   Format: 'Format',
-   Table: 'Table',
-   Tools: 'Tools',
-   'Powered by {0}': 'Powered by {0}',
-   'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help':
-      'Rich Text Area. Press ALT-F9 for menu. Press ALT-F10 for toolbar. Press ALT-0 for help',
-};
-tinymce.addI18n('en', en);
-tinymce.addI18n('ru', ru);
-tinymce.addI18n('uz', uz);
-const Editor = ({ setValue, value = '', onFocus }) => (
-   <StyledElement>
-      <Tinymce
-         init={{
-            ...init,
-            content_style: [contentCss, contentUICss].join('\n'),
-            language: 'en',
-         }}
-         onEditorChange={setValue}
-         onFocus={onFocus}
-         value={value}
-      />
-   </StyledElement>
-);
-Editor.propTypes = {
-   onFocus: func,
-   setValue: func,
-   value: string,
+const Editor = ({ value, onChange }) => {
+   const editor = useEditor({
+      content: value,
+      onUpdate: ({ editor }) => {
+         onChange(editor.getHTML());
+      },
+      extensions: [
+         StarterKit,
+         Underline,
+         Subscript,
+         Superscript,
+         Highlight.configure({ multicolor: true }),
+         TextAlign.configure({ types: ['heading', 'paragraph'] }),
+         Link.configure({ openOnClick: false }),
+      ],
+   });
+   useEffect(() => {
+      if (editor && value !== editor.getHTML()) {
+         editor.commands.setContent(value);
+      }
+      return () => {
+         if(editor) {
+            editor.destroy()
+         }
+      }
+   }, [value, editor]);
+   return (
+      <StyledEditor>
+         <div>
+            <MenuBar editor={editor} />
+         </div>
+         <div>
+            <EditorContent editor={editor} />
+         </div>
+      </StyledEditor>
+   );
 };
 export default Editor;

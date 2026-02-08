@@ -4,6 +4,7 @@ import SelectComponent from './Select';
 import Calendar from './components/Calendar/Calendar';
 import ColorInput from './components/ColorInput';
 import DateInput from './components/DateInput';
+import Editor from './components/Editor';
 import Label from './components/Label';
 import MaskInput from './components/MaskInput';
 import NumberInput from './components/NumberInput';
@@ -70,23 +71,23 @@ const StyledInputContent = styled.div`
       width: 300px;
    }
 `;
-// const StyledEditorContent = styled.div`
-//    align-items: center;
-//    display: flex;
-//    flex-direction: column;
-//    justify-content: center;
-//    width: 100%;
-//    & .sub-title {
-//       font-size: 24px;
-//       font-weight: 600;
-//       margin: 24px 0 8px 0;
-//       width: 700px;
-//    }
-//    & .content {
-//       padding: 8px 0 24px 0;
-//       width: 700px;
-//    }
-// `;
+const StyledEditorContent = styled.div`
+   align-items: center;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   width: 100%;
+   & .sub-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 24px 0 8px 0;
+      width: 700px;
+   }
+   & .content {
+      padding: 8px 0 24px 0;
+      width: 700px;
+   }
+`;
 const App = () => {
    const [password, setPassword] = useState('');
    const [phone, setPhone] = useState('');
@@ -94,7 +95,7 @@ const App = () => {
    const [number, setNumber] = useState('');
    const [comment, setComment] = useState('');
    const [OTP, setOTP] = useState('');
-   // const [info, setInfo] = useState('');
+   const [info, setInfo] = useState('');
    const [time, setTime] = useState('');
    const [date, setDate] = useState('');
    const [rating, setRating] = useState(0);
@@ -105,6 +106,7 @@ const App = () => {
    const [color, setColor] = useState({ r: 0, g: 0, b: 0, a: 0 });
    const [input, setInput] = useState(null);
    const [mask, setMask] = useState('');
+   console.log(info);
    const options = [
       {
          label: 'Option 1',
@@ -154,6 +156,12 @@ const App = () => {
                </a>
             </p>
          </StyledHeader>
+         <StyledEditorContent>
+            <div className='content'>
+               <Label>Rich editor</Label>
+               <Editor onChange={setInfo} value={info} />
+            </div>
+         </StyledEditorContent>
          <StyledInputContent>
             <h2 className='sub-title'>Inputs</h2>
             <div className='content'>
