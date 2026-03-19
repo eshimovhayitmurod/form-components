@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import styled from 'styled-components';
 import SelectComponent from './Select';
+import BigNumberInput from './components/BigNumberInput';
 import Calendar from './components/Calendar/Calendar';
 import ColorInput from './components/ColorInput';
 import DateInput from './components/DateInput';
@@ -106,7 +107,8 @@ const App = () => {
    const [color, setColor] = useState({ r: 0, g: 0, b: 0, a: 0 });
    const [input, setInput] = useState(null);
    const [mask, setMask] = useState('');
-   console.log(info);
+   const [big, setBig] = useState('');
+   console.log(big);
    const options = [
       {
          label: 'Option 1',
@@ -167,6 +169,10 @@ const App = () => {
             <div className='content'>
                <Label>Text input</Label>
                <TextInput onChange={setText} value={text} />
+            </div>
+            <div className='content'>
+               <Label>Big number input</Label>
+               <BigNumberInput onChange={setBig} value={big} />
             </div>
             <div className='content'>
                <Label>Number input</Label>

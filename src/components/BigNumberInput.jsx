@@ -1,7 +1,8 @@
-import { bool, func, oneOf, string } from 'prop-types';
+import Big from 'big.js';
+import { any, bool, func, number, oneOf, string } from 'prop-types';
 import { memo, useCallback, useMemo } from 'react';
 import { StyledInput } from './StyledComponents';
-const normalize = val => {
+const normalize = (val = '', scale = 2) => {
    if (!val) return '';
    let cleaned = val.replace(/[^0-9.-]/g, '');
    if (cleaned.includes('-', 1)) {
@@ -17,7 +18,8 @@ const normalize = val => {
       let cleanInteger = integerPart.replace(/^(-?)0+(?=\d)/, '$1');
       if (cleanInteger === '') cleanInteger = '0';
       if (cleanInteger === '-') cleanInteger = '-0';
-      return `${cleanInteger}.${decimalPart}`;
+      const cleanDecimal = decimalPart.slice(0, scale);
+      return `${cleanInteger}.${cleanDecimal}`;
    } else {
       let normalized = cleaned.replace(/^(-?)0+(?=\d)/, '$1');
       return normalized;
@@ -34,11 +36,38 @@ const normalizeNumberString = str => {
    if (/^0*\.?0*$/.test(s)) s = '0';
    return isNegative && s !== '0' ? '-' + s : s;
 };
+const checkMin = (val = '', min) => {
+   try {
+      const hasMin = typeof min === 'string' && min;
+      const ltMin = hasMin ? Big(val).lt(Big(min)) : false;
+      return ltMin;
+   } catch {
+      return false;
+   }
+};
+const checkMax = (val = '', max) => {
+   try {
+      const hasMax = typeof max === 'string' && max;
+      const gtMax = hasMax ? Big(val).gt(Big(max)) : false;
+      return gtMax;
+   } catch {
+      return false;
+   }
+};
+const parseValue = (val = '', { scale = 2, min, max }) => {
+   const value = normalize(val, scale);
+   const gtMax = checkMax(value, max);
+   const ltMin = checkMin(value, min);
+   const newValue = gtMax ? max : ltMin ? min : value;
+   return newValue;
+};
 const BigNumberInput = memo(
    ({
       'data-cy': dataCY,
       error = '',
       isDisabled = false,
+      max,
+      min,
       name,
       normalizeOnBlur = true,
       onBlur,
@@ -46,6 +75,7 @@ const BigNumberInput = memo(
       onFocus,
       placeholder = '',
       ref,
+      scale = 2,
       size = 'md',
       value = '',
    }) => {
@@ -56,10 +86,10 @@ const BigNumberInput = memo(
       }, [value]);
       const onChangeInput = useCallback(
          e => {
-            const newValue = normalize(e.target.value);
-            onChange(newValue);
+            const value = parseValue(e.target.value, { scale, min, max });
+            onChange(value);
          },
-         [onChange],
+         [onChange, min, max, scale],
       );
       const onBlurInput = useCallback(
          e => {
@@ -98,11 +128,18 @@ const BigNumberInput = memo(
 );
 BigNumberInput.propTypes = {
    'data-cy': string,
-   isDisabled: bool,
    error: bool,
+   isDisabled: bool,
+   max: any,
+   min: any,
+   name: string,
+   normalizeOnBlur: bool,
+   onBlur: func,
    onChange: func,
    onFocus: func,
    placeholder: string,
+   ref: any,
+   scale: number,
    size: oneOf(['large', 'medium', 'small']),
    value: string,
 };
