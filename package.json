@@ -19,7 +19,6 @@
     "@tiptap/starter-kit": "^3.19.0",
     "ace-builds": "^1.33.1",
     "axios": "^1.13.2",
-    "big.js": "^7.0.1",
     "cleave.js": "^1.6.0",
     "dayjs": "^1.11.19",
     "dompurify": "^3.3.3",

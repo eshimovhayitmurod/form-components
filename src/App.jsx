@@ -108,7 +108,6 @@ const App = () => {
    const [input, setInput] = useState(null);
    const [mask, setMask] = useState('');
    const [big, setBig] = useState('');
-   console.log(big);
    const options = [
       {
          label: 'Option 1',
